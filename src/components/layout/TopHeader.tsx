@@ -226,10 +226,10 @@ export function TopHeader() {
         <button 
           onClick={handleSignOut}
           className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors text-sm px-3 py-1.5 rounded-sm border border-transparent hover:border-red-500/30 hover:bg-red-500/10"
-          title="Disconnect"
+          title="Sign Out"
         >
           <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Disconnect</span>
+          <span className="hidden sm:inline">Sign Out</span>
         </button>
       </div>
 
