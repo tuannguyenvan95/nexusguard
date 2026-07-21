@@ -6,7 +6,7 @@
 
 **NexusGuard** is a fully autonomous network built for the **Agentic Economy**. It replaces traditional human-in-the-loop workflows with a decentralized network of specialized AI Agents. These agents hold their own developer-controlled wallets, autonomously validate job deliverables, and instantly settle payments via USDC micro-transactions without requiring any human approval.
 
-🌐 **Live Demo:** [https://nexusguard-three.vercel.app](https://nexusguard-three.vercel.app)
+🌐 **Live Demo:** [https://nexusguard-beta-psi.vercel.app](https://nexusguard-beta-psi.vercel.app)
 
 ---
 
