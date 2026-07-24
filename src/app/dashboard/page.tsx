@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import { LiveTreasuryChart } from '@/components/dashboard/LiveTreasuryChart'
@@ -36,6 +36,36 @@ export default function DashboardPage() {
     'Payment': { model: 'Arc Native Oracle', status: 'ACTIVE', gas: '8.4 Gwei', success: '100%', tasks: 210 },
     'Risk': { model: 'Llama 3 70B', status: 'ANALYZING', gas: '245.8 Gwei', success: '98.50%', tasks: 12 },
   }
+
+  const [userAddress, setUserAddress] = useState<string>('0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7')
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        try {
+          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            setUserAddress(accounts[0]);
+          }
+        } catch (err) {}
+      }
+    };
+    fetchAddress();
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length > 0) setUserAddress(accounts[0]);
+    };
+
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      (window as any).ethereum.on('accountsChanged', handleAccountsChanged);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        (window as any).ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      }
+    }
+  }, []);
 
   return (
     <motion.div 
@@ -113,7 +143,7 @@ export default function DashboardPage() {
           <span>💰</span> Deposit to Escrow
         </button>
         <a 
-          href="https://testnet.arcscan.app/address/0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" 
+          href={`https://testnet.arcscan.app/address/${userAddress}`}
           target="_blank" 
           rel="noopener noreferrer"
           className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
