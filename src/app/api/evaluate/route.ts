@@ -63,13 +63,6 @@ export async function POST(request: Request) {
         const provider = new ethers.JsonRpcProvider('https://rpc.testnet.arc.network')
         const wallet = new ethers.Wallet(privateKey, provider)
         
-        // Cấu hình USDC Contract
-        const usdcAddress = '0x3600000000000000000000000000000000000000'
-        const erc20Abi = [
-          'function transfer(address to, uint256 amount) returns (bool)'
-        ]
-        const usdcContract = new ethers.Contract(usdcAddress, erc20Abi, wallet)
-        
         let numericAmount = 10;
         if (totalAmount) {
           const parsed = parseFloat(totalAmount.replace(/,/g, '').replace(/[^\d.]/g, ''))
@@ -81,11 +74,13 @@ export async function POST(request: Request) {
           numericAmount = numericAmount / winners
         }
 
-        console.log(`Calculated amount to send: ${numericAmount} USDC (Type: ${payoutType})`)
-        const amount = ethers.parseUnits(numericAmount.toString(), 6)
+        const amount = ethers.parseEther(numericAmount.toString())
         
-        console.log(`Sending 10 USDC to ${submitterWallet}...`)
-        const tx = await usdcContract.transfer(submitterWallet, amount)
+        console.log(`Sending ${numericAmount} Native USDC to ${submitterWallet}...`)
+        const tx = await wallet.sendTransaction({
+          to: submitterWallet,
+          value: amount
+        })
         await tx.wait() // Chờ confirm
         console.log(`Transfer successful! Hash: ${tx.hash}`)
         txHash = tx.hash // Gán Hash thật
