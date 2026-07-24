@@ -39,7 +39,7 @@ export default function JobDetailPage() {
     payoutType: 'winner_takes_all',
     maxWinners: '1',
     agent: 'Claude 3.5 Sonnet',
-    applicant: ''
+    applicant: [] as string[]
   })
 
   useEffect(() => {
@@ -48,6 +48,16 @@ export default function JobDetailPage() {
       const { data, error } = await supabase.from('nexus_jobs').select('*').eq('id', id).single()
 
       if (data && !error) {
+        let parsedApplicants: string[] = []
+        if (data.applicant) {
+          try {
+            const parsed = JSON.parse(data.applicant)
+            parsedApplicants = Array.isArray(parsed) ? parsed : [data.applicant]
+          } catch (e) {
+            parsedApplicants = [data.applicant]
+          }
+        }
+
         setJob({
           id: data.id,
           title: data.title,
@@ -60,7 +70,7 @@ export default function JobDetailPage() {
           payoutType: data.payouttype || 'winner_takes_all',
           maxWinners: data.maxwinners || '1',
           agent: data.agent || 'Claude 3.5 Sonnet',
-          applicant: data.applicant
+          applicant: parsedApplicants
         })
         if (data.status) {
           setJobStatus(data.status)
@@ -85,7 +95,7 @@ export default function JobDetailPage() {
             payoutType: 'winner_takes_all',
             maxWinners: '1',
             agent: hardcodedJob.agent,
-            applicant: ''
+            applicant: []
           })
           setJobStatus(hardcodedJob.status)
         }
@@ -112,12 +122,18 @@ export default function JobDetailPage() {
     }
 
     setTimeout(async () => {
+      let updatedApplicants = Array.isArray(job.applicant) ? [...job.applicant] : []
+      if (!updatedApplicants.includes(applicantAddress)) {
+        updatedApplicants.push(applicantAddress)
+      }
+      const applicantsJson = JSON.stringify(updatedApplicants)
+
       const supabase = createClient()
-      const { error } = await supabase.from('nexus_jobs').update({ status: 'In Progress', applicant: applicantAddress }).eq('id', job.id)
+      const { error } = await supabase.from('nexus_jobs').update({ status: 'In Progress', applicant: applicantsJson }).eq('id', job.id)
       
       if (!error) {
         setJobStatus('In Progress')
-        setJob(prev => ({ ...prev, applicant: applicantAddress }))
+        setJob(prev => ({ ...prev, applicant: updatedApplicants }))
       } else {
         alert('Lỗi cập nhật CSDL: ' + error.message)
       }
@@ -267,12 +283,7 @@ export default function JobDetailPage() {
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PROVIDER</div>
                 <div className="text-sm text-gray-300">{job.provider}</div>
               </div>
-              {['In Progress', 'Submitted', 'Completed'].includes(jobStatus) && (
-                <div>
-                  <div className="text-[10px] text-emerald-500 mb-1 uppercase tracking-widest flex items-center gap-1">APPLIED BY</div>
-                  <div className="text-sm text-emerald-400 font-bold truncate max-w-[120px]" title={(job as any).applicant || '0x...'} >{(job as any).applicant ? `${(job as any).applicant.substring(0,6)}...${(job as any).applicant.substring((job as any).applicant.length - 4)}` : '0x789...abc'}</div>
-                </div>
-              )}
+              {/* Removed single applied by */}
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">CREATED</div>
                 <div className="text-sm text-gray-300">{job.createdAt}</div>
@@ -287,7 +298,7 @@ export default function JobDetailPage() {
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
-                <div className="text-sm text-gray-300">{['In Progress', 'Submitted', 'Completed'].includes(jobStatus) ? '1' : '0'} / {job.maxWinners}</div>
+                <div className="text-sm text-gray-300">{Array.isArray(job.applicant) ? job.applicant.length : 0} / {job.maxWinners}</div>
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PAYOUT TX</div>
@@ -308,6 +319,20 @@ export default function JobDetailPage() {
               </div>
             </div>
           </div>
+
+          {Array.isArray(job.applicant) && job.applicant.length > 0 && (
+            <div className="bg-gray-900/40 border border-gray-800 rounded-sm p-6 relative">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">APPLICANTS LIST</h3>
+              <div className="space-y-2">
+                {job.applicant.map((app: string, idx: number) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-black/50 border border-gray-800 rounded-sm">
+                    <Wallet className="w-4 h-4 text-emerald-500" />
+                    <span className="text-gray-300 font-mono text-sm">{app}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {jobStatus === 'Submitted' && (
             <motion.div 
