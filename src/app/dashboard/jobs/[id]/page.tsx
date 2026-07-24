@@ -74,6 +74,11 @@ export default function JobDetailPage() {
       setIsSubmitting(false)
       setIsModalOpen(false)
       setJobStatus('Submitted')
+      
+      // Auto-trigger AI validation after a brief moment
+      setTimeout(() => {
+        handleAiValidation()
+      }, 800)
     }, 2000)
   }
 
@@ -141,15 +146,6 @@ export default function JobDetailPage() {
           <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
         </div>
         
-        {jobStatus === 'Submitted' && (
-          <button 
-            onClick={handleAiValidation}
-            className="border border-purple-500 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
-          >
-            <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-            TRIGGER AI VALIDATION
-          </button>
-        )}
         {jobStatus === 'Funded' && (
           <button 
             onClick={() => setIsModalOpen(true)}
