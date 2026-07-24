@@ -91,10 +91,11 @@ export async function POST(request: Request) {
         txHash = tx.hash // Gán Hash thật
       } else {
         console.warn("No TREASURY_PRIVATE_KEY found in .env.local, using mock transaction.")
+        return NextResponse.json({ success: false, error: 'TREASURY_PRIVATE_KEY is not configured on the server.' })
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to execute real on-chain transaction:", e)
-      // Nếu ví hết phí gas hoặc lỗi mạng, vẫn trả về mock hash để Demo không bị đứt đoạn
+      return NextResponse.json({ success: false, error: e.message || 'On-chain transaction failed.' })
     }
 
     // Trả về báo cáo kết quả từ AI (MOCK DỮ LIỆU ĐỂ DEMO)

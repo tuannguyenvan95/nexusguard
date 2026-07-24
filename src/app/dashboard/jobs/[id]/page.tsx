@@ -228,8 +228,8 @@ export default function JobDetailPage() {
           await supabase.from('nexus_jobs').update({ status: newStatus, payout_txs: JSON.stringify(updatedPayoutTxs) }).eq('id', job.id)
         }, 1500)
       } else {
-        setValidationLogs(prev => [...prev, '> ERROR: API CALL FAILED.'])
-        setTimeout(() => setIsAiValidating(false), 2000)
+        setValidationLogs(prev => [...prev, `> ERROR: ${data.error || 'API CALL FAILED.'}`])
+        setTimeout(() => setIsAiValidating(false), 3000)
       }
     } catch (err) {
       setValidationLogs(prev => [...prev, '> ERROR: NETWORK TIMEOUT.'])
