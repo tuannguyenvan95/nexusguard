@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { createClient } from '@/lib/supabase/client'
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -41,60 +42,55 @@ export default function JobDetailPage() {
   })
 
   useEffect(() => {
-    const savedJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
-    const appliedJobs = JSON.parse(localStorage.getItem('nexusguard_applied_jobs') || '[]')
-    
-    const foundJob = savedJobs.find((j: any) => j.id === id)
-    const appliedJob = appliedJobs.find((j: any) => j.id === id)
+    async function fetchJobData() {
+      const supabase = createClient()
+      const { data, error } = await supabase.from('nexus_jobs').select('*').eq('id', id).single()
 
-    // Mock data for hardcoded jobs if not found in local storage
-    const mockJobs = [
-      { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE', description: 'Audit the ERC-8183 escrow contract.', requirements: ['Solidity', 'Foundry'] },
-      { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE', description: 'Build a stunning Next.js App Router dashboard.', requirements: ['Next.js', 'Tailwind'] },
-    ]
-
-    const hardcodedJob = mockJobs.find(j => j.id === id)
-    
-    if (foundJob) {
-      setJob({
-        id: foundJob.id,
-        title: foundJob.title,
-        amount: foundJob.amount,
-        provider: foundJob.provider,
-        description: foundJob.description || 'Automated escrow task initialized via on-chain contract.',
-        requirements: foundJob.requirements || ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
-        createdAt: foundJob.date,
-        deadline: foundJob.date,
-        payoutType: foundJob.payoutType || 'winner_takes_all',
-        maxWinners: foundJob.maxWinners || '1',
-        agent: foundJob.agent || 'Claude 3.5 Sonnet'
-      })
-      if (foundJob.status) {
-        setJobStatus(foundJob.status)
-      }
-    } else if (hardcodedJob) {
-      setJob({
-        id: hardcodedJob.id,
-        title: hardcodedJob.title,
-        amount: hardcodedJob.amount,
-        provider: hardcodedJob.provider,
-        description: hardcodedJob.description,
-        requirements: hardcodedJob.requirements,
-        createdAt: hardcodedJob.date,
-        deadline: hardcodedJob.date,
-        payoutType: 'winner_takes_all',
-        maxWinners: '1',
-        agent: hardcodedJob.agent
-      })
-      setJobStatus(hardcodedJob.status)
-    }
-
-    if (appliedJob) {
-      setJobStatus(appliedJob.status)
-      if (appliedJob.applicant) {
-        setJob(prev => ({ ...prev, applicant: appliedJob.applicant }))
+      if (data && !error) {
+        setJob({
+          id: data.id,
+          title: data.title,
+          amount: data.amount,
+          provider: data.provider,
+          description: data.description || 'Automated escrow task initialized via on-chain contract.',
+          requirements: data.requirements || ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
+          createdAt: data.date,
+          deadline: data.date,
+          payoutType: data.payoutType || 'winner_takes_all',
+          maxWinners: data.maxWinners || '1',
+          agent: data.agent || 'Claude 3.5 Sonnet',
+          applicant: data.applicant
+        })
+        if (data.status) {
+          setJobStatus(data.status)
+        }
+      } else {
+        // Fallback for mock jobs
+        const mockJobs = [
+          { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE', description: 'Audit the ERC-8183 escrow contract.', requirements: ['Solidity', 'Foundry'] },
+          { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE', description: 'Build a stunning Next.js App Router dashboard.', requirements: ['Next.js', 'Tailwind'] },
+        ]
+        const hardcodedJob = mockJobs.find(j => j.id === id)
+        if (hardcodedJob) {
+          setJob({
+            id: hardcodedJob.id,
+            title: hardcodedJob.title,
+            amount: hardcodedJob.amount,
+            provider: hardcodedJob.provider,
+            description: hardcodedJob.description,
+            requirements: hardcodedJob.requirements,
+            createdAt: hardcodedJob.date,
+            deadline: hardcodedJob.date,
+            payoutType: 'winner_takes_all',
+            maxWinners: '1',
+            agent: hardcodedJob.agent,
+            applicant: ''
+          })
+          setJobStatus(hardcodedJob.status)
+        }
       }
     }
+    fetchJobData()
   }, [id])
 
   const handleApplyJob = async () => {
@@ -114,21 +110,16 @@ export default function JobDetailPage() {
       console.log(e)
     }
 
-    setTimeout(() => {
-      const newAppliedJob = {
-        id: job.id,
-        title: job.title,
-        amount: job.amount,
-        status: 'In Progress',
-        applicant: applicantAddress
-      }
-      const existing = JSON.parse(localStorage.getItem('nexusguard_applied_jobs') || '[]')
-      const updated = existing.filter((j: any) => j.id !== job.id)
-      updated.push(newAppliedJob)
-      localStorage.setItem('nexusguard_applied_jobs', JSON.stringify(updated))
+    setTimeout(async () => {
+      const supabase = createClient()
+      const { error } = await supabase.from('nexus_jobs').update({ status: 'In Progress', applicant: applicantAddress }).eq('id', job.id)
       
-      setJobStatus('In Progress')
-      setJob(prev => ({ ...prev, applicant: applicantAddress }))
+      if (!error) {
+        setJobStatus('In Progress')
+        setJob(prev => ({ ...prev, applicant: applicantAddress }))
+      } else {
+        alert('Lỗi cập nhật CSDL: ' + error.message)
+      }
       setIsApplying(false)
     }, 1000)
   }
@@ -139,7 +130,10 @@ export default function JobDetailPage() {
     
     setIsSubmitting(true)
     // Simulate transaction delay
-    setTimeout(() => {
+    setTimeout(async () => {
+      const supabase = createClient()
+      await supabase.from('nexus_jobs').update({ status: 'Submitted' }).eq('id', job.id)
+
       setIsSubmitting(false)
       setIsModalOpen(false)
       setJobStatus('Submitted')
@@ -184,11 +178,14 @@ export default function JobDetailPage() {
           `> TX HASH: ${data.txHash.substring(0,12)}... CONFIRMED.`,
           '> JOB COMPLETED. FUNDS SETTLED.'
         ])
-        setTimeout(() => {
+        setTimeout(async () => {
           setIsAiValidating(false)
           setJobStatus('Completed')
           setPayoutTxHash(data.txHash)
           setAiReport(data.report)
+          
+          const supabase = createClient()
+          await supabase.from('nexus_jobs').update({ status: 'Completed' }).eq('id', job.id)
         }, 1500)
       } else {
         setValidationLogs(prev => [...prev, '> ERROR: API CALL FAILED.'])

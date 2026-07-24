@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ethers } from 'ethers'
 import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
+import { createClient } from '@/lib/supabase/client'
 
 export default function CreateJobPage() {
   const router = useRouter()
@@ -87,10 +88,15 @@ export default function CreateJobPage() {
         maxWinners: formData.maxWinners
       }
 
-      const existingJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
-      localStorage.setItem('nexusguard_jobs', JSON.stringify([newJob, ...existingJobs]))
+      const supabase = createClient()
+      const { error: dbError } = await supabase.from('nexus_jobs').insert([newJob])
 
-      alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}`);
+      if (dbError) {
+        console.error('Lỗi khi lưu lên Supabase:', dbError)
+        alert('Có lỗi khi lưu Database: ' + dbError.message)
+      } else {
+        alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}`);
+      }
       router.push('/dashboard/jobs')
       
     } catch (error: any) {

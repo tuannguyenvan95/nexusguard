@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BrainCircuit, ShieldAlert, TerminalSquare, Search } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function JobsPage() {
   const [activeTab, setActiveTab] = useState('All')
@@ -10,8 +11,18 @@ export default function JobsPage() {
   const [localJobs, setLocalJobs] = useState<any[]>([])
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
-    setLocalJobs(saved)
+    async function fetchJobs() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
+        if (data && !error) {
+          setLocalJobs(data)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    fetchJobs()
   }, [])
   
   const mockJobs = [

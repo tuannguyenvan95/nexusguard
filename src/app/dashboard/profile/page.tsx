@@ -42,20 +42,20 @@ export default function ProfilePage() {
       if (address) setUserAddress(address)
     }
 
-    // Lấy danh sách jobs đã tạo từ localStorage
-    const fetchJobs = () => {
-      const storedJobs = localStorage.getItem('nexusguard_jobs')
-      if (storedJobs) {
-        try {
-          setCreatedJobs(JSON.parse(storedJobs))
-        } catch (e) {}
-      }
-
-      const storedAppliedJobs = localStorage.getItem('nexusguard_applied_jobs')
-      if (storedAppliedJobs) {
-        try {
-          setAppliedJobs(JSON.parse(storedAppliedJobs))
-        } catch (e) {}
+    // Lấy danh sách jobs từ Supabase
+    const fetchJobs = async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
+      
+      if (data && !error && userAddress && userAddress !== 'Not Connected') {
+        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`
+        // provider was saved as shortened string
+        const created = data.filter(job => job.provider?.toLowerCase() === shortAddress.toLowerCase())
+        // applicant was saved as full string
+        const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
+        
+        setCreatedJobs(created)
+        setAppliedJobs(applied)
       }
     }
 
@@ -70,9 +70,29 @@ export default function ProfilePage() {
     }
 
     fetchWallet()
-    fetchJobs()
     fetchUser()
   }, [])
+
+  useEffect(() => {
+    // Re-fetch jobs when userAddress changes
+    const fetchJobs = async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
+      
+      if (data && !error && userAddress && userAddress !== 'Not Connected') {
+        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`
+        const created = data.filter(job => job.provider?.toLowerCase() === shortAddress.toLowerCase())
+        const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
+        
+        setCreatedJobs(created)
+        setAppliedJobs(applied)
+      }
+    }
+    
+    if (userAddress !== 'Not Connected') {
+      fetchJobs()
+    }
+  }, [userAddress])
 
   const formatAddress = (addr: string) => {
     if (addr === 'Not Connected') return addr
