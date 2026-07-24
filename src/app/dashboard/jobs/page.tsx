@@ -110,7 +110,7 @@ export default function JobsPage() {
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[...localJobs, ...mockJobs]
+        {[...localJobs, ...mockJobs.filter(mj => !localJobs.some(lj => lj.id === mj.id || lj.title === mj.title))]
           .filter(j => activeTab === 'All' ? true : j.status === activeTab)
           .filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()) || j.id.toLowerCase().includes(searchQuery.toLowerCase()))
           .map((job) => (
