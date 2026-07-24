@@ -36,7 +36,8 @@ export default function JobDetailPage() {
     createdAt: 'Oct 20, 2026',
     deadline: 'Oct 28, 2026',
     payoutType: 'winner_takes_all',
-    maxWinners: '1'
+    maxWinners: '1',
+    agent: 'Claude 3.5 Sonnet'
   })
 
   useEffect(() => {
