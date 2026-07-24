@@ -20,7 +20,8 @@ export default function CreateJobPage() {
     description: '',
     requirements: 'Proof of Work Verification, AI Consensus Validation, Secure Fund Release',
     payoutType: 'winner_takes_all',
-    maxWinners: '1'
+    maxWinners: '1',
+    validatingAgent: 'Claude 3.5 Sonnet (Frontend/UI)'
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +80,7 @@ export default function CreateJobPage() {
         provider: from.substring(0, 6) + '...' + from.substring(from.length - 4),
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         risk: 'LOW',
-        agent: 'ESCROW NODE',
+        agent: formData.validatingAgent,
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
         payoutType: formData.payoutType,
@@ -223,6 +224,25 @@ export default function CreateJobPage() {
               className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-[#d4af37] font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
               placeholder="e.g. Code Coverage > 90%, AI Vision Match"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest flex justify-between">
+              <span>Validating AI Agent</span>
+              <span className="text-[9px] text-[#d4af37]">Assign specialized Node</span>
+            </label>
+            <div className="w-full">
+              <BlueprintDropdown 
+                options={[
+                  'Claude 3.5 Sonnet (Frontend/UI)', 
+                  'GPT-4o (Backend/Logic)', 
+                  'Llama 3 70B (Smart Contract Security)',
+                  'Arc Native Oracle (Data Verification)'
+                ]}
+                value={formData.validatingAgent}
+                onChange={(val) => setFormData({...formData, validatingAgent: val})}
+              />
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-800 flex justify-end">
