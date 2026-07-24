@@ -8,7 +8,8 @@ import Link from 'next/link'
 
 export default function TreasuryPage() {
   const [balance, setBalance] = useState<string>('Loading...')
-  const [recipient, setRecipient] = useState('')
+  const [selectedJobId, setSelectedJobId] = useState('')
+  const [createdJobs, setCreatedJobs] = useState<any[]>([])
   const [amount, setAmount] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [transactions, setTransactions] = useState<any[]>([])
@@ -20,7 +21,6 @@ export default function TreasuryPage() {
     '> [TREASURY_AGENT] Current Aave USDC APY: 4.2%',
     '> [TREASURY_AGENT] Current Compound USDC APY: 5.1%',
   ])
-
   useEffect(() => {
     const interval = setInterval(() => {
       setAgentLogs(prev => {
@@ -36,6 +36,11 @@ export default function TreasuryPage() {
         return newLogs.slice(-5) // Keep last 5 logs
       })
     }, 5000)
+
+    // Load created jobs
+    const savedJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
+    setCreatedJobs(savedJobs)
+
     return () => clearInterval(interval)
   }, [])
 
@@ -164,9 +169,21 @@ export default function TreasuryPage() {
     }
   }, [])
 
+  const handleJobSelect = (jobId: string) => {
+    setSelectedJobId(jobId)
+    const job = createdJobs.find(j => j.id === jobId)
+    if (job && job.amount) {
+      // Extract numeric value from "2500 USDC" or similar
+      const numMatch = job.amount.match(/[\d,.]+/)
+      if (numMatch) {
+        setAmount(numMatch[0].replace(/,/g, ''))
+      }
+    }
+  }
+
   const handleQuickSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!recipient || !amount) return
+    if (!selectedJobId || !amount) return
 
     setIsSending(true)
     setTerminalOutput(['[SYS] Initiating secure transaction protocol...'])
@@ -198,15 +215,17 @@ export default function TreasuryPage() {
         // USDC uses 6 decimals
         const txAmount = ethers.parseUnits(amount, 6)
         
-        const tx = await contract.transfer(recipient, txAmount)
+        // Use a dummy Escrow contract address as the recipient
+        const escrowAddress = '0x0000000000000000000000000000000000008183'
+        const tx = await contract.transfer(escrowAddress, txAmount)
         setTerminalOutput(prev => [...prev, `[MEMPOOL] Tx Broadcasted: ${tx.hash.slice(0, 10)}...`])
         setTerminalOutput(prev => [...prev, '[SYS] Awaiting block confirmation...'])
         
         await tx.wait() // wait for confirmation
         
         setTerminalOutput(prev => [...prev, '[SUCCESS] Transaction confirmed! Protocol complete.'])
-        alert(`Giao dịch gửi đi thành công!\nTxHash: ${tx.hash}`)
-        setRecipient('')
+        alert(`Đã nạp tiền vào Escrow thành công!\nTxHash: ${tx.hash}`)
+        setSelectedJobId('')
         setAmount('')
         fetchBalance() // auto refresh after sending
       } else {
@@ -276,7 +295,7 @@ export default function TreasuryPage() {
             
             <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Terminal className="w-3 h-3 text-[#d4af37]" /> QUICK SEND
+                <Terminal className="w-3 h-3 text-[#d4af37]" /> DEPOSIT TO ESCROW
               </h3>
               <div className="flex flex-col items-end gap-1">
                 <div className="text-[10px] text-gray-400 uppercase tracking-widest flex items-center gap-1">
@@ -296,15 +315,19 @@ export default function TreasuryPage() {
 
             <form className="space-y-4" onSubmit={handleQuickSend}>
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-widest">Recipient Address</label>
-                <input 
-                  type="text" 
+                <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-widest">Select Job to Fund</label>
+                <select 
                   required
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="0x..." 
-                  className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 focus:outline-none focus:border-[#d4af37] transition-colors text-sm"
-                />
+                  value={selectedJobId}
+                  onChange={(e) => handleJobSelect(e.target.value)}
+                  className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 focus:outline-none focus:border-[#d4af37] transition-colors text-sm appearance-none"
+                >
+                  <option value="" disabled>-- Select a Created Job --</option>
+                  {createdJobs.map(job => (
+                    <option key={job.id} value={job.id}>{job.title} ({job.id})</option>
+                  ))}
+                  {createdJobs.length === 0 && <option disabled>No jobs available</option>}
+                </select>
               </div>
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-widest">Amount (USDC)</label>
