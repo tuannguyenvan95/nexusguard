@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { BrainCircuit, ShieldAlert, TerminalSquare } from 'lucide-react'
+import { BrainCircuit, ShieldAlert, TerminalSquare, Search } from 'lucide-react'
 
 export default function JobsPage() {
   const [activeTab, setActiveTab] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [localJobs, setLocalJobs] = useState<any[]>([])
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function JobsPage() {
     { id: 'job_004', title: 'Security Review Phase 1', amount: '8,000 USDC', status: 'Completed', provider: '0x789...ghi', date: 'Oct 15, 2026', risk: 'LOW', agent: 'GUARDIAN NODE' },
   ]
 
-  const tabs = ['All', 'Open', 'New', 'My Jobs', 'Draft', 'Funded', 'Submitted', 'Completed']
+  const tabs = ['All', 'Open', 'Draft', 'Funded', 'Submitted', 'Completed']
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -60,29 +61,48 @@ export default function JobsPage() {
         </Link>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-2 border-b border-gray-800 pb-px overflow-x-auto">
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-all duration-300 relative whitespace-nowrap ${
-              activeTab === tab 
-                ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' 
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
-            }`}
-          >
-            {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,1)]" />
-            )}
-            {tab}
-          </button>
-        ))}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-px">
+        {/* Tabs */}
+        <div className="flex space-x-2 overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2.5 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-all duration-300 relative whitespace-nowrap ${
+                activeTab === tab 
+                  ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' 
+                  : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
+              }`}
+            >
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,1)]" />
+              )}
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative w-full md:w-64 pb-2 md:pb-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none md:pb-0 pb-2">
+            <Search className="w-4 h-4 text-gray-500" />
+          </div>
+          <input
+            type="text"
+            placeholder="SEARCH JOBS..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-black/50 border border-gray-800 focus:border-[#d4af37]/50 rounded-sm py-2 pl-10 pr-4 text-xs font-mono text-gray-200 placeholder-gray-600 focus:outline-none transition-colors"
+          />
+        </div>
       </div>
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' ? true : activeTab === 'New' ? (j.status === 'Funded' || j.status === 'Draft' || j.status === 'Open') : activeTab === 'My Jobs' ? localJobs.some(l => l.id === j.id) : j.status === activeTab).map((job) => (
+        {[...localJobs, ...mockJobs]
+          .filter(j => activeTab === 'All' ? true : j.status === activeTab)
+          .filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()) || j.id.toLowerCase().includes(searchQuery.toLowerCase()))
+          .map((job) => (
           <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
             <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
               {/* Background Hash Log (Aesthetic) */}
