@@ -8,7 +8,50 @@ export async function POST(request: Request) {
     // Giả lập thời gian AI xử lý (đọc code, xem preview) khoảng 3 giây
     await new Promise(resolve => setTimeout(resolve, 3000))
 
-    // Trả về báo cáo kết quả từ AI
+    /* 
+    =============================================================================
+    [THỰC TẾ TRONG PRODUCTION - AI ESCROW PROMPT INJECTION]
+    =============================================================================
+    // 1. Khởi tạo LLM Client (OpenAI, Anthropic, hoặc mô hình Local Llama 3)
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    
+    // 2. Fetch mã nguồn từ Github / Lấy HTML từ Preview URL
+    const githubData = await fetchGithubRepository(githubUrl);
+    
+    // 3. Tiêm Ngữ Cảnh (Context Injection) vào System Prompt
+    const systemPrompt = \`
+      You are an impartial, strict Technical Validator AI for an Escrow platform.
+      Your job is to act as a Smart Contract Oracle.
+      
+      JOB DETAILS:
+      - Title: \${jobTitle}
+      - Requirements: \${jobRequirements.join(', ')} // (Lấy mảng yêu cầu từ Database)
+      - Acceptance Criteria: Code must be responsive, bug-free, and secure.
+
+      SUBMISSION TO EVALUATE:
+      - Source Code: \${githubData}
+      
+      RULES:
+      1. If the submission meets ALL requirements exactly, output "DECISION: PASS".
+      2. If it misses ANY requirement, output "DECISION: FAIL" and list the issues.
+      3. Do NOT show mercy. Be as strict as a smart contract.
+    \`;
+
+    // 4. Gọi API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // Hoặc Claude 3.5 Sonnet
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Please evaluate the submission." }
+      ],
+      temperature: 0.1, // Nhiệt độ thấp để kết quả ổn định, không "ảo tưởng"
+    });
+
+    // const report = completion.choices[0].message.content;
+    =============================================================================
+    */
+
+    // Trả về báo cáo kết quả từ AI (MOCK DỮ LIỆU ĐỂ DEMO)
     const report = `
 ### 🤖 REPORT FROM ${agent || 'AI AGENT'}
 **Task:** ${jobTitle} (ID: ${jobId})
