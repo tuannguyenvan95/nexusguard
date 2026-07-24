@@ -14,16 +14,17 @@ export default function JobsPage() {
   }, [])
   
   const mockJobs = [
-    { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Funded', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE' },
+    { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE' },
     { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE' },
     { id: 'job_003', title: 'Subsquid Indexer Setup', amount: '1,200 USDC', status: 'Draft', provider: '--', date: 'Oct 26, 2026', risk: 'N/A', agent: 'PENDING...' },
     { id: 'job_004', title: 'Security Review Phase 1', amount: '8,000 USDC', status: 'Completed', provider: '0x789...ghi', date: 'Oct 15, 2026', risk: 'LOW', agent: 'GUARDIAN NODE' },
   ]
 
-  const tabs = ['All', 'New', 'My Jobs', 'Draft', 'Funded', 'Submitted', 'Completed']
+  const tabs = ['All', 'Open', 'New', 'My Jobs', 'Draft', 'Funded', 'Submitted', 'Completed']
 
   const getStatusColor = (status: string) => {
     switch(status) {
+      case 'Open': return 'text-blue-400 bg-blue-400/10 border-blue-400/30 shadow-[0_0_10px_rgba(96,165,250,0.2)]'
       case 'Funded': return 'text-[#d4af37] bg-[#d4af37]/10 border-[#d4af37]/30 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
       case 'Submitted': return 'text-purple-400 bg-purple-400/10 border-purple-400/30 shadow-[0_0_10px_rgba(192,132,252,0.2)]'
       case 'Completed': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30 shadow-[0_0_10px_rgba(52,211,153,0.2)]'
@@ -81,7 +82,7 @@ export default function JobsPage() {
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' ? true : activeTab === 'New' ? (j.status === 'Funded' || j.status === 'Draft') : activeTab === 'My Jobs' ? localJobs.some(l => l.id === j.id) : j.status === activeTab).map((job) => (
+        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' ? true : activeTab === 'New' ? (j.status === 'Funded' || j.status === 'Draft' || j.status === 'Open') : activeTab === 'My Jobs' ? localJobs.some(l => l.id === j.id) : j.status === activeTab).map((job) => (
           <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
             <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
               {/* Background Hash Log (Aesthetic) */}
@@ -142,10 +143,12 @@ export default function JobsPage() {
               </div>
 
               {/* Call to action on hover or based on status */}
-              <div className={`mt-4 pt-4 border-t border-gray-800 flex justify-end ${job.status === 'Submitted' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
-                <span className={`text-[10px] font-bold font-mono uppercase tracking-widest flex items-center gap-2 ${job.status === 'Submitted' ? 'text-purple-400' : 'text-[#d4af37]'}`}>
+              <div className={`mt-4 pt-4 border-t border-gray-800 flex justify-end ${job.status === 'Submitted' || job.status === 'Open' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+                <span className={`text-[10px] font-bold font-mono uppercase tracking-widest flex items-center gap-2 ${job.status === 'Submitted' ? 'text-purple-400' : job.status === 'Open' ? 'text-blue-400' : 'text-[#d4af37]'}`}>
                   {job.status === 'Submitted' ? (
                     <><span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" /> CLICK TO VALIDATE DELIVERABLE &rarr;</>
+                  ) : job.status === 'Open' ? (
+                    <><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> APPLY FOR JOB &rarr;</>
                   ) : (
                     <>VIEW CONTRACT DETAILS &rarr;</>
                   )}

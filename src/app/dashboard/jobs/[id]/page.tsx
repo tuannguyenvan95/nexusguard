@@ -11,8 +11,8 @@ export default function JobDetailPage() {
   const id = params.id as string
 
   // Initial State Setup
-  const initialStatus = id === 'job_002' ? 'Submitted' : 'Funded'
-  const [jobStatus, setJobStatus] = useState(initialStatus)
+  const [jobStatus, setJobStatus] = useState('Open')
+  const [isApplying, setIsApplying] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAiValidating, setIsAiValidating] = useState(false)
@@ -42,7 +42,18 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     const savedJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
+    const appliedJobs = JSON.parse(localStorage.getItem('nexusguard_applied_jobs') || '[]')
+    
     const foundJob = savedJobs.find((j: any) => j.id === id)
+    const appliedJob = appliedJobs.find((j: any) => j.id === id)
+
+    // Mock data for hardcoded jobs if not found in local storage
+    const mockJobs = [
+      { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE', description: 'Audit the ERC-8183 escrow contract.', requirements: ['Solidity', 'Foundry'] },
+      { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE', description: 'Build a stunning Next.js App Router dashboard.', requirements: ['Next.js', 'Tailwind'] },
+    ]
+
+    const hardcodedJob = mockJobs.find(j => j.id === id)
     
     if (foundJob) {
       setJob({
@@ -61,8 +72,47 @@ export default function JobDetailPage() {
       if (foundJob.status) {
         setJobStatus(foundJob.status)
       }
+    } else if (hardcodedJob) {
+      setJob({
+        id: hardcodedJob.id,
+        title: hardcodedJob.title,
+        amount: hardcodedJob.amount,
+        provider: hardcodedJob.provider,
+        description: hardcodedJob.description,
+        requirements: hardcodedJob.requirements,
+        createdAt: hardcodedJob.date,
+        deadline: hardcodedJob.date,
+        payoutType: 'winner_takes_all',
+        maxWinners: '1',
+        agent: hardcodedJob.agent
+      })
+      setJobStatus(hardcodedJob.status)
+    }
+
+    if (appliedJob) {
+      setJobStatus(appliedJob.status)
     }
   }, [id])
+
+  const handleApplyJob = () => {
+    setIsApplying(true)
+    setTimeout(() => {
+      const newAppliedJob = {
+        id: job.id,
+        title: job.title,
+        amount: job.amount,
+        status: 'In Progress'
+      }
+      const existing = JSON.parse(localStorage.getItem('nexusguard_applied_jobs') || '[]')
+      // Remove if already exists to avoid duplicates, then push
+      const updated = existing.filter((j: any) => j.id !== job.id)
+      updated.push(newAppliedJob)
+      localStorage.setItem('nexusguard_applied_jobs', JSON.stringify(updated))
+      
+      setJobStatus('In Progress')
+      setIsApplying(false)
+    }, 1000)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -139,20 +189,36 @@ export default function JobDetailPage() {
         <div>
           <div className="flex items-center gap-4 mb-2">
             <h1 className="text-3xl font-space-grotesk font-bold text-[#d4af37] uppercase tracking-tight">{job.title}_</h1>
-            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold border ${jobStatus === 'Submitted' ? 'text-purple-400 bg-purple-400/10 border-purple-400/30' : 'text-[#d4af37] bg-[#d4af37]/10 border-[#d4af37]/30'}`}>
+            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold border ${jobStatus === 'Submitted' ? 'text-purple-400 bg-purple-400/10 border-purple-400/30' : jobStatus === 'Open' ? 'text-blue-400 bg-blue-400/10 border-blue-400/30' : jobStatus === 'In Progress' ? 'text-orange-400 bg-orange-400/10 border-orange-400/30' : 'text-[#d4af37] bg-[#d4af37]/10 border-[#d4af37]/30'}`}>
               {jobStatus}
             </span>
           </div>
           <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
         </div>
         
-        {jobStatus === 'Funded' && (
+        {jobStatus === 'In Progress' && (
           <button 
             onClick={() => setIsModalOpen(true)}
             className="border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
           >
             <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
             SUBMIT DELIVERABLE
+          </button>
+        )}
+        {jobStatus === 'Open' && (
+          <button 
+            onClick={handleApplyJob}
+            disabled={isApplying}
+            className="border border-blue-400 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
+          >
+            {isApplying ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> APPLYING...</>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                APPLY FOR JOB
+              </>
+            )}
           </button>
         )}
       </div>

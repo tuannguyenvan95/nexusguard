@@ -24,6 +24,7 @@ const itemVariants: Variants = {
 export default function ProfilePage() {
   const [userAddress, setUserAddress] = useState<string>('Not Connected')
   const [createdJobs, setCreatedJobs] = useState<any[]>([])
+  const [appliedJobs, setAppliedJobs] = useState<any[]>([])
   const [userName, setUserName] = useState<string>('Loading...')
 
   useEffect(() => {
@@ -47,6 +48,13 @@ export default function ProfilePage() {
       if (storedJobs) {
         try {
           setCreatedJobs(JSON.parse(storedJobs))
+        } catch (e) {}
+      }
+
+      const storedAppliedJobs = localStorage.getItem('nexusguard_applied_jobs')
+      if (storedAppliedJobs) {
+        try {
+          setAppliedJobs(JSON.parse(storedAppliedJobs))
         } catch (e) {}
       }
     }
@@ -79,11 +87,16 @@ export default function ProfilePage() {
     { label: 'Jobs Completed', value: '12', change: 'As Developer', id: 'CPL-04' }
   ]
 
-  const mockParticipatedJobs = [
-    { id: 'JOB_#102', title: 'Audit Smart Contract', status: 'Completed', reward: '2,000 USDC' },
-    { id: 'JOB_#105', title: 'Frontend Dashboard', status: 'In Progress', reward: '1,500 USDC' },
-    { id: 'JOB_#108', title: 'API Integration', status: 'Submitted', reward: '800 USDC' },
-  ]
+  // Helper function for status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'In Progress': return 'text-orange-400 bg-orange-400/10'
+      case 'Submitted': return 'text-purple-400 bg-purple-400/10'
+      case 'Completed': return 'text-emerald-400 bg-emerald-400/10'
+      case 'Open': return 'text-blue-400 bg-blue-400/10'
+      default: return 'text-gray-400 bg-gray-400/10'
+    }
+  }
 
   return (
     <motion.div 
@@ -249,29 +262,44 @@ export default function ProfilePage() {
 
           {/* Participated Jobs */}
           <motion.div variants={itemVariants} className="glass glass-hover p-6 rounded-sm relative overflow-hidden">
-             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-sm font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 Recent Participation
               </h3>
             </div>
-            <div className="space-y-3">
-              {mockParticipatedJobs.map((job) => (
-                <div key={job.id} className="flex justify-between items-center p-3 border-b border-gray-800/50 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                    <div>
-                      <div className="text-xs font-bold text-gray-200">{job.title}</div>
-                      <div className="text-[10px] text-gray-500 font-mono mt-0.5">{job.id}</div>
+
+            {appliedJobs.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-gray-800 rounded-sm">
+                <CircleDashed className="w-8 h-8 text-gray-700 mx-auto mb-3" />
+                <p className="text-gray-500 font-mono text-sm uppercase">No active participations</p>
+                <Link href="/dashboard/jobs" className="text-[#d4af37] text-xs font-mono uppercase tracking-widest mt-2 inline-block hover:underline">
+                  Find Jobs to Apply &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {appliedJobs.map((job) => (
+                  <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
+                    <div className="flex items-center justify-between p-4 bg-gray-900/50 border border-gray-800 rounded-sm group-hover:border-emerald-500/30 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:shadow-[0_0_8px_rgba(16,185,129,0.8)] transition-shadow" />
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-200 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{job.title}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono tracking-widest">ID: {job.id}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono font-bold text-emerald-400">{job.amount}</div>
+                        <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-sm ${getStatusColor(job.status)}`}>
+                          {job.status}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-mono text-emerald-400">{job.reward}</div>
-                    <div className="text-[10px] font-mono text-gray-500 uppercase mt-0.5">{job.status}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </motion.div>
 
         </div>
