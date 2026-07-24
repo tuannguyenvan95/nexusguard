@@ -80,7 +80,6 @@ export default function CreateJobPage() {
         status: 'Funded',
         provider: from.substring(0, 6) + '...' + from.substring(from.length - 4),
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        risk: 'LOW',
         agent: formData.validatingAgent,
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
@@ -96,8 +95,8 @@ export default function CreateJobPage() {
         alert('Có lỗi khi lưu Database: ' + dbError.message)
       } else {
         alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}`);
+        router.push('/dashboard/jobs')
       }
-      router.push('/dashboard/jobs')
       
     } catch (error: any) {
       console.error(error);
