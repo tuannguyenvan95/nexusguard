@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign } from 'lucide-react'
+import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { createClient } from '@/lib/supabase/client'
 
@@ -332,16 +332,29 @@ export default function JobDetailPage() {
                         <Wallet className="w-4 h-4 text-emerald-500" />
                         <span className="text-gray-300 font-mono text-sm">{app}</span>
                       </div>
-                      {payout && (
-                        <a 
-                          href={`https://testnet.arcscan.app/tx/${payout.txHash}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[#d4af37] text-xs hover:underline flex items-center gap-1 font-mono"
-                        >
-                          <span className="hidden sm:inline">TX: </span>{payout.txHash.substring(0, 6)}...{payout.txHash.substring(payout.txHash.length - 4)} <LinkIcon className="w-3 h-3" />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-4">
+                        {jobStatus === 'Completed' && (
+                          payout ? (
+                            <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/30">
+                              <CheckCircle2 className="w-3 h-3" /> WINNER
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-red-400 text-xs font-bold bg-red-400/10 px-2 py-0.5 rounded border border-red-400/30">
+                              <XCircle className="w-3 h-3" /> LOST
+                            </span>
+                          )
+                        )}
+                        {payout && (
+                          <a 
+                            href={`https://testnet.arcscan.app/tx/${payout.txHash}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[#d4af37] text-xs hover:underline flex items-center gap-1 font-mono"
+                          >
+                            <span className="hidden sm:inline">TX: </span>{payout.txHash.substring(0, 6)}...{payout.txHash.substring(payout.txHash.length - 4)} <LinkIcon className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
