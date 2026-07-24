@@ -378,7 +378,7 @@ export default function JobDetailPage() {
         </div>
         
         <div className="flex gap-4">
-          {!isMockJob && connectedWallet?.toLowerCase() === job.provider?.toLowerCase() && (
+          {!isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase())) && (
             <>
               <button 
                 onClick={() => setIsEditModalOpen(true)}
