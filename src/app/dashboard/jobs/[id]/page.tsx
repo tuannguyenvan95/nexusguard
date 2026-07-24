@@ -264,11 +264,11 @@ export default function JobDetailPage() {
         }, 1500)
       } else {
         setValidationLogs(prev => [...prev, `> ERROR: ${data.error || 'API CALL FAILED.'}`])
-        setTimeout(() => setIsAiValidating(false), 3000)
+        // Removed setTimeout so user can read the error
       }
     } catch (err) {
       setValidationLogs(prev => [...prev, '> ERROR: NETWORK TIMEOUT.'])
-      setTimeout(() => setIsAiValidating(false), 2000)
+      // Removed setTimeout
     }
   }
 
@@ -644,10 +644,16 @@ export default function JobDetailPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-2xl bg-[#030712] border border-purple-500/50 shadow-2xl shadow-purple-500/20 p-6 rounded-sm font-mono"
+            className="bg-black/90 border border-[#d4af37]/30 rounded-sm p-6 w-full max-w-2xl font-mono relative"
           >
-            <div className="flex items-center gap-3 mb-6 border-b border-gray-800 pb-4">
-              <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+            <button 
+                onClick={() => setIsAiValidating(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3 mb-4 border-b border-gray-800 pb-4">
+                <Loader2 className="w-5 h-5 text-[#d4af37] animate-spin" />
               <h2 className="text-xl font-space-grotesk font-bold text-purple-400 uppercase tracking-tight">Escrow Agent Verification_</h2>
             </div>
             
