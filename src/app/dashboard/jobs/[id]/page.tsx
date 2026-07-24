@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Code, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -22,7 +22,7 @@ export default function JobDetailPage() {
   const [previewUrl, setPreviewUrl] = useState('')
 
   // Mock data based on ID
-  const job = {
+  const [job, setJob] = useState({
     id,
     title: id === 'job_002' ? 'Frontend Dashboard UI' : 'Smart Contract Audit',
     amount: '2,500 USDC',
@@ -31,7 +31,28 @@ export default function JobDetailPage() {
     requirements: ['Next.js 15 App Router', 'Tailwind CSS', 'Framer Motion', 'Fully Responsive'],
     createdAt: 'Oct 20, 2026',
     deadline: 'Oct 28, 2026'
-  }
+  })
+
+  useEffect(() => {
+    const savedJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
+    const foundJob = savedJobs.find((j: any) => j.id === id)
+    
+    if (foundJob) {
+      setJob({
+        id: foundJob.id,
+        title: foundJob.title,
+        amount: foundJob.amount,
+        provider: foundJob.provider,
+        description: 'Automated escrow task initialized via on-chain contract.',
+        requirements: ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
+        createdAt: foundJob.date,
+        deadline: foundJob.date
+      })
+      if (foundJob.status) {
+        setJobStatus(foundJob.status)
+      }
+    }
+  }, [id])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
