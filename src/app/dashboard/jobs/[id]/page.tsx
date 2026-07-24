@@ -17,6 +17,7 @@ export default function JobDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAiValidating, setIsAiValidating] = useState(false)
   const [validationLogs, setValidationLogs] = useState<string[]>([])
+  const [aiReport, setAiReport] = useState<string>('')
 
   const [githubUrl, setGithubUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
@@ -74,42 +75,53 @@ export default function JobDetailPage() {
     }, 2000)
   }
 
-  const handleAiValidation = () => {
+  const handleAiValidation = async () => {
     setIsAiValidating(true)
     setValidationLogs([
       '> INITIATING AI ESCROW VALIDATION...',
-      '> AGENT WALLET CONNECTED: 0x8F9...2A1 (BALANCE: 5,000 USDC)',
+      `> CONNECTING TO API: /api/evaluate`,
+      `> ASSIGNED AGENT: ${job.agent || 'ESCROW NODE'}`,
+      '> WAITING FOR AI ANALYSIS...'
     ])
 
-    const script = [
-      '> Pulling repository from GitHub API...',
-      '> Running static analysis & automated test suite...',
-      '> Test coverage: 98% - ALL TESTS PASSED.',
-      '> Verifying UI deployment (Vercel) against Figma designs...',
-      '> AI Vision Match: 99.5% similarity detected.',
-      '> ESCROW CONDITIONS MET. NO HUMAN APPROVAL REQUIRED.',
-      '> Autonomously signing transaction to release 2,500 USDC...',
-      '> Broadacasting to Arc Layer 1...',
-      '> TX HASH: 0x' + Math.random().toString(16).substring(2, 12).toUpperCase() + '... CONFIRMED.',
-      '> JOB COMPLETED. FUNDS SETTLED.'
-    ]
-
-    const finalHash = script[8].split('TX HASH: ')[1].split('...')[0]
-
-    let step = 0
-    const interval = setInterval(() => {
-      if (step < script.length) {
-        setValidationLogs(prev => [...prev, script[step]])
-        step++
-      } else {
-        clearInterval(interval)
+    try {
+      const res = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          jobTitle: job.title,
+          githubUrl: githubUrl || "https://github.com/org/repo/pull/42",
+          previewUrl: previewUrl || "dashboard-preview.vercel.app",
+          submitterWallet: submitterWallet || "0x789...abc",
+          agent: job.agent
+        })
+      })
+      
+      const data = await res.json()
+      
+      if (data.success) {
+        setValidationLogs(prev => [
+          ...prev, 
+          '> AI RESPONSE RECEIVED.', 
+          '> ESCROW CONDITIONS MET. TX AUTHORIZED.',
+          `> TX HASH: ${data.txHash.substring(0,12)}... CONFIRMED.`,
+          '> JOB COMPLETED. FUNDS SETTLED.'
+        ])
         setTimeout(() => {
           setIsAiValidating(false)
           setJobStatus('Completed')
-          setPayoutTxHash(finalHash)
+          setPayoutTxHash(data.txHash)
+          setAiReport(data.report)
         }, 1500)
+      } else {
+        setValidationLogs(prev => [...prev, '> ERROR: API CALL FAILED.'])
+        setTimeout(() => setIsAiValidating(false), 2000)
       }
-    }, 800)
+    } catch (err) {
+      setValidationLogs(prev => [...prev, '> ERROR: NETWORK TIMEOUT.'])
+      setTimeout(() => setIsAiValidating(false), 2000)
+    }
   }
 
   return (
@@ -267,7 +279,7 @@ export default function JobDetailPage() {
               <div className="bg-black/50 border border-emerald-900 rounded-sm p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-gray-400">Escrow Validated By:</span>
-                  <span className="text-emerald-400">ESCROW AI NODE</span>
+                  <span className="text-emerald-400">{job.agent || 'ESCROW AI NODE'}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-gray-400">Human Approval:</span>
@@ -278,6 +290,12 @@ export default function JobDetailPage() {
                   <span className="text-emerald-400 font-bold">{job.amount}</span>
                 </div>
               </div>
+              
+              {aiReport && (
+                <div className="mt-6 pt-6 border-t border-emerald-900/50 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
+                  {aiReport}
+                </div>
+              )}
             </motion.div>
           )}
         </div>
