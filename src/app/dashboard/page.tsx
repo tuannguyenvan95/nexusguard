@@ -102,12 +102,45 @@ export default function DashboardPage() {
         </Link>
         <button 
           className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
-          onClick={() => alert('Chức năng nạp tiền (Deposit) sẽ gọi Smart Contract qua Arc Network. Đang trong quá trình phát triển.')}
+          onClick={async () => {
+            try {
+              const { ethereum } = window as any;
+              if (!ethereum) {
+                alert("Vui lòng cài đặt và kết nối ví MetaMask trước!");
+                return;
+              }
+              const accounts = await ethereum.request({ method: 'eth_accounts' });
+              if (!accounts || accounts.length === 0) {
+                alert("Vui lòng kết nối ví ở góc trên bên phải trước khi Deposit!");
+                return;
+              }
+              const from = accounts[0];
+              
+              // Yêu cầu chuyển 0.01 Token vào địa chỉ Escrow Contract giả định
+              const txHash = await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                  from: from,
+                  to: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7", // Mock Escrow Contract
+                  value: "0x2386F26FC10000", // 0.01 in wei (hex)
+                }],
+              });
+              
+              alert(`Giao dịch Deposit trên mạng Arc Testnet thành công!\nTx Hash: ${txHash}`);
+            } catch (error: any) {
+              console.error(error);
+              if (error.code === 4001) {
+                alert("Bạn đã từ chối giao dịch nạp tiền.");
+              } else {
+                alert(`Lỗi: ${error.message}`);
+              }
+            }
+          }}
         >
           <span>💰</span> Deposit to Escrow
         </button>
         <a 
-          href="https://explorer.arc.net" 
+          href="https://explorer.arc.net/address/0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
