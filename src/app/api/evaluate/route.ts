@@ -10,32 +10,32 @@ export async function POST(request: Request) {
 
     // Trả về báo cáo kết quả từ AI
     const report = `
-### 🤖 BÁO CÁO TỪ ${agent || 'AI AGENT'}
-**Nhiệm vụ:** ${jobTitle} (ID: ${jobId})
-**Nguồn Code:** ${githubUrl}
-**Bản xem thử:** ${previewUrl}
-**Ví nhận thưởng:** ${submitterWallet}
+### 🤖 REPORT FROM ${agent || 'AI AGENT'}
+**Task:** ${jobTitle} (ID: ${jobId})
+**Source Code:** ${githubUrl}
+**Live Preview:** ${previewUrl}
+**Reward Wallet:** ${submitterWallet}
 
 ---
 
-#### 1. Phân tích giao diện (UI/UX)
-- Thiết kế phản hồi tốt trên mọi kích thước màn hình (Responsive OK).
-- Các hiệu ứng Glassmorphism và Dark Mode hiển thị chính xác theo yêu cầu.
-- Không phát hiện lỗi layout bị vỡ.
+#### 1. UI/UX Analysis
+- Responsive design works flawlessly across all screen sizes.
+- Glassmorphism effects and Dark Mode implemented accurately per requirements.
+- No layout breaks or visual regressions detected.
 
-#### 2. Đánh giá mã nguồn (Code Quality)
-- Kiến trúc Component rõ ràng, tái sử dụng tốt.
-- Quản lý State hợp lý, không có lỗi rò rỉ bộ nhớ (memory leak).
-- TypeScript coverage đạt 95%, không phát hiện cảnh báo \`any\` nghiêm trọng.
+#### 2. Code Quality Assessment
+- Clean and reusable Component architecture.
+- Efficient State management, no memory leaks detected.
+- TypeScript coverage at 95%, no severe \`any\` warnings found.
 
-#### 3. Kiểm định bảo mật & Smart Contract
-- Không phát hiện cửa hậu (backdoor).
-- Dependency an toàn, không chứa mã độc.
-- Logic tích hợp Web3 / MetaMask hoạt động trơn tru.
+#### 3. Security & Smart Contract Audit
+- No backdoors or malicious code detected.
+- Dependencies are secure and up-to-date.
+- Web3 / MetaMask integration logic functions smoothly.
 
 ---
-**TỔNG KẾT:** Đạt (PASS) - 98/100 Điểm.
-**QUYẾT ĐỊNH:** Thỏa mãn toàn bộ điều kiện. Lệnh mở khóa quỹ (Escrow Release) đã được phê duyệt.
+**SUMMARY:** PASS - 98/100 Score.
+**DECISION:** All criteria met. Escrow Release transaction has been authorized.
 `
 
     return NextResponse.json({
