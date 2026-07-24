@@ -20,6 +20,7 @@ export default function JobDetailPage() {
 
   const [githubUrl, setGithubUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
+  const [payoutTxHash, setPayoutTxHash] = useState('')
 
   // Mock data based on ID
   const [job, setJob] = useState({
@@ -87,9 +88,11 @@ export default function JobDetailPage() {
       '> ESCROW CONDITIONS MET. NO HUMAN APPROVAL REQUIRED.',
       '> Autonomously signing transaction to release 2,500 USDC...',
       '> Broadacasting to Arc Layer 1...',
-      '> TX HASH: 0x' + Math.random().toString(16).substring(2, 10).toUpperCase() + '... CONFIRMED.',
+      '> TX HASH: 0x' + Math.random().toString(16).substring(2, 12).toUpperCase() + '... CONFIRMED.',
       '> JOB COMPLETED. FUNDS SETTLED.'
     ]
+
+    const finalHash = script[8].split('TX HASH: ')[1].split('...')[0]
 
     let step = 0
     const interval = setInterval(() => {
@@ -101,6 +104,7 @@ export default function JobDetailPage() {
         setTimeout(() => {
           setIsAiValidating(false)
           setJobStatus('Completed')
+          setPayoutTxHash(finalHash)
         }, 1500)
       }
     }, 800)
@@ -182,7 +186,24 @@ export default function JobDetailPage() {
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
-                <div className="text-sm text-gray-300">0 / {job.maxWinners}</div>
+                <div className="text-sm text-gray-300">{jobStatus === 'Completed' ? '1' : '0'} / {job.maxWinners}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PAYOUT TX</div>
+                <div className="text-sm text-gray-300">
+                  {jobStatus === 'Completed' && payoutTxHash ? (
+                    <a 
+                      href={`https://testnet.arcscan.app/tx/${payoutTxHash}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[#d4af37] hover:underline flex items-center gap-1"
+                    >
+                      {payoutTxHash}... <LinkIcon className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <span className="text-gray-500">PENDING</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
