@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BrainCircuit, ShieldAlert, TerminalSquare } from 'lucide-react'
 
 export default function JobsPage() {
   const [activeTab, setActiveTab] = useState('All')
+  const [localJobs, setLocalJobs] = useState<any[]>([])
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
+    setLocalJobs(saved)
+  }, [])
   
   const mockJobs = [
     { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Funded', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE' },
@@ -75,7 +81,7 @@ export default function JobsPage() {
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {mockJobs.filter(j => activeTab === 'All' || j.status === activeTab).map((job) => (
+        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' || j.status === activeTab).map((job) => (
           <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
             <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
               {/* Background Hash Log (Aesthetic) */}

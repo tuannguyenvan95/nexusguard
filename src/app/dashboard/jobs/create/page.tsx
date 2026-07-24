@@ -67,6 +67,21 @@ export default function CreateJobPage() {
         ],
       });
       
+      // LƯU CÔNG VIỆC VÀO LOCAL STORAGE
+      const newJob = {
+        id: `job_${Math.floor(Math.random() * 900 + 100)}`,
+        title: formData.title,
+        amount: `${formData.budget} ${formData.currency}`,
+        status: 'Funded',
+        provider: from.substring(0, 6) + '...' + from.substring(from.length - 4),
+        date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        risk: 'LOW',
+        agent: 'ESCROW NODE'
+      }
+
+      const existingJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
+      localStorage.setItem('nexusguard_jobs', JSON.stringify([newJob, ...existingJobs]))
+
       alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}`);
       router.push('/dashboard/jobs')
       
