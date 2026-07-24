@@ -193,7 +193,10 @@ export default function JobDetailPage() {
           githubUrl: githubUrl || "https://github.com/org/repo/pull/42",
           previewUrl: previewUrl || "dashboard-preview.vercel.app",
           submitterWallet: submitterWallet || "0x789...abc",
-          agent: job.agent
+          agent: job.agent,
+          payoutType: job.payoutType,
+          maxWinners: job.maxWinners,
+          totalAmount: job.amount
         })
       })
       

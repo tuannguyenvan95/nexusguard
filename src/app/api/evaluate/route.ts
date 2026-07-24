@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { jobId, jobTitle, githubUrl, previewUrl, submitterWallet, agent } = body
+    const { jobId, jobTitle, githubUrl, previewUrl, submitterWallet, agent, payoutType, maxWinners, totalAmount } = body
 
     // Giả lập thời gian AI xử lý (đọc code, xem preview) khoảng 3 giây
     await new Promise(resolve => setTimeout(resolve, 3000))
@@ -70,9 +70,19 @@ export async function POST(request: Request) {
         ]
         const usdcContract = new ethers.Contract(usdcAddress, erc20Abi, wallet)
         
-        // Chuyển 10 USDC cho người nộp bài (USDC thường có 6 decimals, nhưng trên ARC Testnet có thể là 18, set 6 tạm)
-        // 10 USDC = 10 * 10^6
-        const amount = ethers.parseUnits('10', 6)
+        let numericAmount = 10;
+        if (totalAmount) {
+          const parsed = parseFloat(totalAmount.replace(/,/g, '').replace(/[^\d.]/g, ''))
+          if (!isNaN(parsed)) numericAmount = parsed;
+        }
+
+        if (payoutType === 'pool_funding') {
+          const winners = parseInt(maxWinners) || 1
+          numericAmount = numericAmount / winners
+        }
+
+        console.log(`Calculated amount to send: ${numericAmount} USDC (Type: ${payoutType})`)
+        const amount = ethers.parseUnits(numericAmount.toString(), 6)
         
         console.log(`Sending 10 USDC to ${submitterWallet}...`)
         const tx = await usdcContract.transfer(submitterWallet, amount)
