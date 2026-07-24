@@ -163,11 +163,11 @@ export default function JobsPage() {
               </div>
 
               {/* Call to action on hover or based on status */}
-              <div className={`mt-4 pt-4 border-t border-gray-800 flex justify-end ${job.status === 'Submitted' || job.status === 'Open' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
-                <span className={`text-[10px] font-bold font-mono uppercase tracking-widest flex items-center gap-2 ${job.status === 'Submitted' ? 'text-purple-400' : job.status === 'Open' ? 'text-blue-400' : 'text-[#d4af37]'}`}>
+              <div className={`mt-4 pt-4 border-t border-gray-800 flex justify-end ${job.status === 'Submitted' || job.status === 'Open' || job.status === 'Funded' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+                <span className={`text-[10px] font-bold font-mono uppercase tracking-widest flex items-center gap-2 ${job.status === 'Submitted' ? 'text-purple-400' : (job.status === 'Open' || job.status === 'Funded') ? 'text-blue-400' : 'text-[#d4af37]'}`}>
                   {job.status === 'Submitted' ? (
                     <><span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" /> CLICK TO VALIDATE DELIVERABLE &rarr;</>
-                  ) : job.status === 'Open' ? (
+                  ) : (job.status === 'Open' || job.status === 'Funded') ? (
                     <><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> APPLY FOR JOB &rarr;</>
                   ) : (
                     <>VIEW CONTRACT DETAILS &rarr;</>
