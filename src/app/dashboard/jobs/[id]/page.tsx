@@ -26,6 +26,21 @@ export default function JobDetailPage() {
   const [socialHandle, setSocialHandle] = useState('')
   const [payoutTxHash, setPayoutTxHash] = useState('')
 
+  // Edit/Delete state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('')
+  const [editAmount, setEditAmount] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editPayoutType, setEditPayoutType] = useState('winner_takes_all')
+  const [editMaxWinners, setEditMaxWinners] = useState('1')
+  const [editAgent, setEditAgent] = useState('ESCROW NODE')
+  
+  const isMockJob = id === 'job_001' || id === 'job_002'
+
   // Mock data based on ID
   const [job, setJob] = useState({
     id,
@@ -141,6 +156,65 @@ export default function JobDetailPage() {
     }
     fetchJobData()
   }, [id])
+
+  // Populate edit form when edit modal opens
+  useEffect(() => {
+    if (isEditModalOpen) {
+      setEditTitle(job.title)
+      setEditAmount(job.amount)
+      setEditDescription(job.description)
+      setEditPayoutType(job.payoutType || 'winner_takes_all')
+      setEditMaxWinners(job.maxWinners || '1')
+      setEditAgent(job.agent || 'ESCROW NODE')
+    }
+  }, [isEditModalOpen, job])
+
+  const handleDeleteJob = async () => {
+    if (!confirm('Are you sure you want to delete this job? This action cannot be undone.')) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        window.location.href = '/dashboard/jobs'
+      } else {
+        alert('Failed to delete job.')
+        setIsDeleting(false)
+      }
+    } catch (err) {
+      console.error(err)
+      setIsDeleting(false)
+    }
+  }
+
+  const handleEditJob = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsEditing(true)
+    try {
+      const res = await fetch(`/api/jobs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle,
+          amount: editAmount,
+          description: editDescription,
+          requirements: job.requirements,
+          payoutType: editPayoutType,
+          maxWinners: editMaxWinners,
+          agent: editAgent
+        })
+      })
+      if (res.ok) {
+        setIsEditModalOpen(false)
+        window.location.reload()
+      } else {
+        alert('Failed to update job.')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsEditing(false)
+    }
+  }
 
   const handleApplyJob = async () => {
     setIsApplying(true)
@@ -287,31 +361,31 @@ export default function JobDetailPage() {
           <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
         </div>
         
-        {jobStatus === 'In Progress' && (
+        <div className="flex gap-4">
+          {!isMockJob && (
+            <>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="border border-blue-400/50 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all"
+              >
+                [ EDIT CONTRACT ]
+              </button>
+              <button 
+                onClick={handleDeleteJob}
+                disabled={isDeleting}
+                className="border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                {isDeleting ? '[ DELETING... ]' : '[ DELETE CONTRACT ]'}
+              </button>
+            </>
+          )}
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
+            onClick={() => window.history.back()}
+            className="border border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all"
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
-            SUBMIT DELIVERABLE
+            &larr; BACK
           </button>
-        )}
-        {(jobStatus === 'Open' || jobStatus === 'Funded') && (
-          <button 
-            onClick={handleApplyJob}
-            disabled={isApplying}
-            className="border border-blue-400 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
-          >
-            {isApplying ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> APPLYING...</>
-            ) : (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                APPLY FOR JOB
-              </>
-            )}
-          </button>
-        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -673,6 +747,105 @@ export default function JobDetailPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-black/90 border border-blue-400/30 rounded-sm p-6 w-full max-w-2xl font-mono relative overflow-y-auto max-h-[90vh]"
+          >
+            <button 
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-space-grotesk font-bold text-blue-400 uppercase tracking-tight mb-6">Edit Contract Parameters_</h2>
+            
+            <form onSubmit={handleEditJob} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-gray-400 mb-1">Contract Title</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-gray-400 mb-1">Budget Amount</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editAmount}
+                  onChange={e => setEditAmount(e.target.value)}
+                  className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono text-gray-400 mb-1">Payout Model</label>
+                  <select 
+                    value={editPayoutType}
+                    onChange={e => setEditPayoutType(e.target.value)}
+                    className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                  >
+                    <option value="winner_takes_all">Winner Takes All</option>
+                    <option value="pool_funding">Pool Funding</option>
+                  </select>
+                </div>
+                {editPayoutType === 'pool_funding' && (
+                  <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1">Max Winners</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={editMaxWinners}
+                      onChange={e => setEditMaxWinners(e.target.value)}
+                      className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-gray-400 mb-1">Assigned AI Agent</label>
+                <select 
+                  value={editAgent}
+                  onChange={e => setEditAgent(e.target.value)}
+                  className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                >
+                  <option value="ESCROW NODE">ESCROW NODE</option>
+                  <option value="GUARDIAN NODE">GUARDIAN NODE</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-gray-400 mb-1">Description</label>
+                <textarea 
+                  rows={4}
+                  required
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  className="w-full bg-black border border-gray-800 focus:border-blue-400/50 rounded-sm p-2 text-sm text-gray-200"
+                />
+              </div>
+              <div className="pt-4 flex justify-end">
+                <button 
+                  type="submit"
+                  disabled={isEditing}
+                  className="bg-blue-500 hover:bg-blue-600 text-black px-6 py-2.5 rounded-sm font-bold font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2"
+                >
+                  {isEditing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {isEditing ? 'SAVING...' : 'SAVE CHANGES'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
       </div>
     </ErrorBoundary>
   )

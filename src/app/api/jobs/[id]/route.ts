@@ -1,54 +1,55 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { escrowAgent } from '@/lib/agents/escrow';
-import { validatorAgent } from '@/lib/agents/validator';
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params;
-    const supabase = await createClient();
-    
-    const { data: job, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { id } = params
+    if (!id) return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
 
-    if (error) throw error;
-    if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    
-    return NextResponse.json(job);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const { error } = await supabase.from('nexus_jobs').delete().eq('id', id)
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('Failed to delete job:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params;
-    const { action, payload, teamId } = await request.json();
+    const { id } = params
+    if (!id) return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
+
+    const body = await request.json()
     
-    if (!action || !teamId) {
-      return NextResponse.json({ error: 'Missing action or teamId' }, { status: 400 });
+    // Only update allowed fields
+    const updates = {
+      title: body.title,
+      amount: body.amount,
+      description: body.description,
+      requirements: body.requirements, // Expecting an array of strings
+      payouttype: body.payoutType,
+      maxwinners: body.maxWinners,
+      agent: body.agent
     }
 
-    let result;
+    const { data, error } = await supabase
+      .from('nexus_jobs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
 
-    switch (action) {
-      case 'fund':
-      case 'submit':
-      case 'complete':
-        result = await escrowAgent.execute({ teamId, jobId: id, payload: { action, ...payload } });
-        break;
-      case 'validate':
-        result = await validatorAgent.execute({ teamId, jobId: id, payload: { action: 'validate', ...payload } });
-        break;
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-    }
+    if (error) throw error
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, job: data })
+  } catch (err: any) {
+    console.error('Failed to update job:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
