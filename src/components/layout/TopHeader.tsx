@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Home, LogOut, Volume2, VolumeX, Wallet, Droplets, Sun, Moon } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { ArrowLeft, Home, LogOut, Volume2, VolumeX, Wallet, Droplets, Sun, Moon, ChevronDown, User, Settings, Briefcase, FileCode2, Send } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ethers } from 'ethers'
 import { useAudio } from '@/hooks/useAudio'
@@ -16,6 +16,8 @@ export function TopHeader() {
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [isLightMode, setIsLightMode] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const { isMuted, toggleMute, playClick } = useAudio()
 
@@ -30,6 +32,15 @@ export function TopHeader() {
       setIsLightMode(true)
       document.documentElement.classList.add('light-theme')
     }
+
+    // Handle click outside for dropdown
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const toggleTheme = () => {
@@ -202,35 +213,134 @@ export function TopHeader() {
         </button>
 
         {walletAddress ? (
-          <button 
-            onClick={disconnectWallet}
-            title="Disconnect Wallet"
-            className="flex items-center gap-2 border border-[#d4af37]/30 hover:border-red-500/50 bg-[#d4af37]/5 hover:bg-red-500/10 px-3 py-1.5 rounded-sm transition-colors group cursor-pointer"
-          >
-            <Wallet className="w-4 h-4 text-[#d4af37] group-hover:text-red-400 transition-colors" />
-            <span className="text-sm font-mono text-gray-300 group-hover:hidden">{formatAddress(walletAddress)}</span>
-            <span className="text-[10px] font-bold text-red-400 hidden group-hover:inline uppercase tracking-widest">DISCONNECT</span>
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button 
+              onClick={() => {
+                playClick()
+                setShowUserMenu(!showUserMenu)
+              }}
+              className={`flex items-center gap-2 border px-3 py-1.5 rounded-sm transition-colors group cursor-pointer ${
+                showUserMenu ? 'border-[#d4af37] bg-[#d4af37]/10' : 'border-[#d4af37]/30 hover:border-[#d4af37]/60 bg-[#d4af37]/5'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-[#d4af37]" />
+              <span className="text-sm font-mono text-gray-300">{formatAddress(walletAddress)}</span>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute top-full right-0 mt-2 w-56 bg-[#0a0e1a] border border-gray-800 rounded-sm shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                
+                {/* Profile Section */}
+                <div className="px-4 py-2 border-b border-gray-800/50 mb-1">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Signed in as</p>
+                  <p className="text-xs text-emerald-400 font-mono font-bold truncate">{walletAddress}</p>
+                </div>
+
+                <div className="px-2 space-y-0.5">
+                  <button 
+                    onClick={() => {
+                      playClick()
+                      setShowUserMenu(false)
+                      router.push('/dashboard/profile')
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-sm transition-colors"
+                  >
+                    <User className="w-4 h-4 text-[#d4af37]" />
+                    My Profile
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      playClick()
+                      setShowUserMenu(false)
+                      // Todo: create settings modal
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-sm transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-gray-400" />
+                    Settings & Connections
+                  </button>
+                </div>
+
+                <div className="px-2 my-2 py-2 border-y border-gray-800/50 space-y-0.5">
+                  <div className="px-3 py-1 mb-1 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-gray-500" />
+                    <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">My Jobs</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      playClick()
+                      setShowUserMenu(false)
+                      router.push('/dashboard/jobs')
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-1.5 pl-8 text-xs text-gray-400 hover:text-[#d4af37] hover:bg-gray-800/50 rounded-sm transition-colors"
+                  >
+                    <FileCode2 className="w-3 h-3" />
+                    Created Projects
+                  </button>
+                  <button 
+                    onClick={() => {
+                      playClick()
+                      setShowUserMenu(false)
+                      router.push('/dashboard/jobs')
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-1.5 pl-8 text-xs text-gray-400 hover:text-[#d4af37] hover:bg-gray-800/50 rounded-sm transition-colors"
+                  >
+                    <Send className="w-3 h-3" />
+                    Submitted Work
+                  </button>
+                </div>
+
+                <div className="px-2 space-y-0.5 mt-1">
+                  <button 
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      disconnectWallet()
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded-sm transition-colors"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    Disconnect Wallet
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      handleSignOut()
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded-sm transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          <button 
-            onClick={connectWallet}
-            disabled={isConnecting}
-            className="flex items-center gap-2 border border-gray-600 hover:border-[#d4af37] bg-gray-900/50 hover:bg-[#d4af37]/10 px-3 py-1.5 rounded-sm transition-colors"
-          >
-            <Wallet className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-mono text-gray-300">
-              {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={connectWallet}
+              disabled={isConnecting}
+              className="flex items-center gap-2 border border-gray-600 hover:border-[#d4af37] bg-gray-900/50 hover:bg-[#d4af37]/10 px-3 py-1.5 rounded-sm transition-colors"
+            >
+              <Wallet className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-mono text-gray-300">
+                {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
+              </span>
+            </button>
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors text-sm px-3 py-1.5 rounded-sm border border-transparent hover:border-red-500/30 hover:bg-red-500/10"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
         )}
-        <button 
-          onClick={handleSignOut}
-          className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors text-sm px-3 py-1.5 rounded-sm border border-transparent hover:border-red-500/30 hover:bg-red-500/10"
-          title="Sign Out"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Sign Out</span>
-        </button>
       </div>
 
       {/* Wallet Selection Modal */}

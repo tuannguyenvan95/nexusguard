@@ -13,8 +13,7 @@ export function BlueprintNav() {
     { name: 'Jobs', path: '/dashboard/jobs' },
     { name: 'Treasury', path: '/dashboard/treasury' },
     { name: 'Agents', path: '/dashboard/agents' },
-    { name: 'Compliance', path: '/dashboard/compliance' },
-    { name: 'Profile', path: '/dashboard/profile' }
+    { name: 'Compliance', path: '/dashboard/compliance' }
   ]
 
   return (
