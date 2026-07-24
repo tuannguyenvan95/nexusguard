@@ -30,6 +30,7 @@ export default function JobDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [connectedWallet, setConnectedWallet] = useState('')
   
   // Edit form state
   const [editTitle, setEditTitle] = useState('')
@@ -154,7 +155,22 @@ export default function JobDetailPage() {
         }
       }
     }
+
+    async function checkWallet() {
+      if (typeof window !== 'undefined' && typeof (window as any).ethereum !== 'undefined') {
+        try {
+          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
+          if (accounts && accounts.length > 0) {
+            setConnectedWallet(accounts[0])
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+
     fetchJobData()
+    checkWallet()
   }, [id])
 
   // Populate edit form when edit modal opens
@@ -362,7 +378,7 @@ export default function JobDetailPage() {
         </div>
         
         <div className="flex gap-4">
-          {!isMockJob && (
+          {!isMockJob && connectedWallet?.toLowerCase() === job.provider?.toLowerCase() && (
             <>
               <button 
                 onClick={() => setIsEditModalOpen(true)}
