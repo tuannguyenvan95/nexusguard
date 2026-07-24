@@ -55,7 +55,8 @@ export default function JobDetailPage() {
         createdAt: foundJob.date,
         deadline: foundJob.date,
         payoutType: foundJob.payoutType || 'winner_takes_all',
-        maxWinners: foundJob.maxWinners || '1'
+        maxWinners: foundJob.maxWinners || '1',
+        agent: foundJob.agent || 'Claude 3.5 Sonnet'
       })
       if (foundJob.status) {
         setJobStatus(foundJob.status)
