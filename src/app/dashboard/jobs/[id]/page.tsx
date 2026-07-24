@@ -30,7 +30,9 @@ export default function JobDetailPage() {
     description: 'Build a stunning Next.js App Router dashboard using Tailwind CSS. Must include dark mode glassmorphism elements and responsive charts.',
     requirements: ['Next.js 15 App Router', 'Tailwind CSS', 'Framer Motion', 'Fully Responsive'],
     createdAt: 'Oct 20, 2026',
-    deadline: 'Oct 28, 2026'
+    deadline: 'Oct 28, 2026',
+    payoutType: 'winner_takes_all',
+    maxWinners: '1'
   })
 
   useEffect(() => {
@@ -46,7 +48,9 @@ export default function JobDetailPage() {
         description: foundJob.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: foundJob.requirements || ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
         createdAt: foundJob.date,
-        deadline: foundJob.date
+        deadline: foundJob.date,
+        payoutType: foundJob.payoutType || 'winner_takes_all',
+        maxWinners: foundJob.maxWinners || '1'
       })
       if (foundJob.status) {
         setJobStatus(foundJob.status)
@@ -171,6 +175,14 @@ export default function JobDetailPage() {
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">DEADLINE</div>
                 <div className="text-sm text-gray-300">{job.deadline}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PAYOUT MODEL</div>
+                <div className="text-sm text-gray-300 capitalize">{job.payoutType.replace('_', ' ')}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
+                <div className="text-sm text-gray-300">0 / {job.maxWinners}</div>
               </div>
             </div>
           </div>

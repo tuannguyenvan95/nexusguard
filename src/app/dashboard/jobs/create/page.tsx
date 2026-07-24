@@ -18,7 +18,9 @@ export default function CreateJobPage() {
     currency: 'USDC',
     deadline: '',
     description: '',
-    requirements: 'Proof of Work Verification, AI Consensus Validation, Secure Fund Release'
+    requirements: 'Proof of Work Verification, AI Consensus Validation, Secure Fund Release',
+    payoutType: 'winner_takes_all',
+    maxWinners: '1'
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +81,9 @@ export default function CreateJobPage() {
         risk: 'LOW',
         agent: 'ESCROW NODE',
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
-        requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean)
+        requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
+        payoutType: formData.payoutType,
+        maxWinners: formData.maxWinners
       }
 
       const existingJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
@@ -164,6 +168,32 @@ export default function CreateJobPage() {
                 value={formData.deadline}
                 onChange={(e) => setFormData({...formData, deadline: e.target.value})}
                 className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors [color-scheme:dark]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Payout Model</label>
+              <div className="w-full">
+                <BlueprintDropdown 
+                  options={['winner_takes_all', 'pool_funding']}
+                  value={formData.payoutType}
+                  onChange={(val) => setFormData({...formData, payoutType: val, maxWinners: val === 'winner_takes_all' ? '1' : formData.maxWinners})}
+                />
+              </div>
+            </div>
+
+            <div className={`space-y-2 ${formData.payoutType === 'winner_takes_all' ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Max Submissions / Winners</label>
+              <input 
+                type="number" 
+                required
+                min="1"
+                value={formData.maxWinners}
+                onChange={(e) => setFormData({...formData, maxWinners: e.target.value})}
+                className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
+                disabled={formData.payoutType === 'winner_takes_all'}
               />
             </div>
           </div>
