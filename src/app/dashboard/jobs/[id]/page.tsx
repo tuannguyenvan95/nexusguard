@@ -264,7 +264,7 @@ export default function JobDetailPage() {
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
-                <div className="text-sm text-gray-300">{jobStatus === 'Completed' ? '1' : '0'} / {job.maxWinners}</div>
+                <div className="text-sm text-gray-300">{['In Progress', 'Submitted', 'Completed'].includes(jobStatus) ? '1' : '0'} / {job.maxWinners}</div>
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PAYOUT TX</div>
