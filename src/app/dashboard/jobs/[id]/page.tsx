@@ -91,25 +91,44 @@ export default function JobDetailPage() {
 
     if (appliedJob) {
       setJobStatus(appliedJob.status)
+      if (appliedJob.applicant) {
+        setJob(prev => ({ ...prev, applicant: appliedJob.applicant }))
+      }
     }
   }, [id])
 
-  const handleApplyJob = () => {
+  const handleApplyJob = async () => {
     setIsApplying(true)
+    
+    // Try to get wallet address
+    let applicantAddress = '0x123...abc (Simulated)'
+    try {
+      const ethereum = (window as any).ethereum
+      if (ethereum) {
+        const accounts = await ethereum.request({ method: 'eth_accounts' })
+        if (accounts && accounts.length > 0) {
+          applicantAddress = accounts[0]
+        }
+      }
+    } catch (e) {
+      console.log(e)
+    }
+
     setTimeout(() => {
       const newAppliedJob = {
         id: job.id,
         title: job.title,
         amount: job.amount,
-        status: 'In Progress'
+        status: 'In Progress',
+        applicant: applicantAddress
       }
       const existing = JSON.parse(localStorage.getItem('nexusguard_applied_jobs') || '[]')
-      // Remove if already exists to avoid duplicates, then push
       const updated = existing.filter((j: any) => j.id !== job.id)
       updated.push(newAppliedJob)
       localStorage.setItem('nexusguard_applied_jobs', JSON.stringify(updated))
       
       setJobStatus('In Progress')
+      setJob(prev => ({ ...prev, applicant: applicantAddress }))
       setIsApplying(false)
     }, 1000)
   }
@@ -250,6 +269,12 @@ export default function JobDetailPage() {
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PROVIDER</div>
                 <div className="text-sm text-gray-300">{job.provider}</div>
               </div>
+              {['In Progress', 'Submitted', 'Completed'].includes(jobStatus) && (
+                <div>
+                  <div className="text-[10px] text-emerald-500 mb-1 uppercase tracking-widest flex items-center gap-1">APPLIED BY</div>
+                  <div className="text-sm text-emerald-400 font-bold truncate max-w-[120px]" title={(job as any).applicant || '0x...'} >{(job as any).applicant ? `${(job as any).applicant.substring(0,6)}...${(job as any).applicant.substring((job as any).applicant.length - 4)}` : '0x789...abc'}</div>
+                </div>
+              )}
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">CREATED</div>
                 <div className="text-sm text-gray-300">{job.createdAt}</div>
