@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import { LiveTreasuryChart } from '@/components/dashboard/LiveTreasuryChart'
 
@@ -88,6 +89,31 @@ export default function DashboardPage() {
             <div className="text-sm text-gray-300 font-mono">2026-07-18 16:39 UTC</div>
           </div>
         </div>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
+        <Link 
+          href="/dashboard/jobs/create" 
+          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-6 py-3 rounded-sm font-space-grotesk font-bold uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(212,175,55,0.15)] hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+        >
+          <span className="text-xl leading-none">+</span>
+          Create New Job
+        </Link>
+        <button 
+          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
+          onClick={() => alert('Chức năng nạp tiền (Deposit) sẽ gọi Smart Contract qua Arc Network. Đang trong quá trình phát triển.')}
+        >
+          <span>💰</span> Deposit to Escrow
+        </button>
+        <a 
+          href="https://explorer.arc.net" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
+        >
+          <span>📜</span> View Contracts
+        </a>
       </motion.div>
 
       {/* Stats Cards Blueprint */}
