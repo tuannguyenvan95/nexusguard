@@ -40,7 +40,9 @@ export default function JobDetailPage() {
     maxWinners: '1',
     agent: 'Claude 3.5 Sonnet',
     applicant: [] as string[],
-    payoutTxs: [] as {address: string, txHash: string}[]
+    payoutTxs: [] as {address: string, txHash: string}[],
+    deliverables: [] as any[],
+    ai_reports: {} as Record<string, string>
   })
 
   useEffect(() => {
@@ -68,6 +70,26 @@ export default function JobDetailPage() {
           }
         }
 
+        let parsedDeliverables: any[] = []
+        if (data.deliverables) {
+          try {
+            const parsed = typeof data.deliverables === 'string' ? JSON.parse(data.deliverables) : data.deliverables
+            parsedDeliverables = Array.isArray(parsed) ? parsed : []
+          } catch (e) {
+            console.error(e)
+          }
+        }
+
+        let parsedAiReports: Record<string, string> = {}
+        if (data.ai_reports) {
+          try {
+            const parsed = typeof data.ai_reports === 'string' ? JSON.parse(data.ai_reports) : data.ai_reports
+            parsedAiReports = typeof parsed === 'object' && parsed !== null ? parsed : {}
+          } catch (e) {
+            console.error(e)
+          }
+        }
+
         setJob({
           id: data.id,
           title: data.title,
@@ -81,7 +103,9 @@ export default function JobDetailPage() {
           maxWinners: data.maxwinners || '1',
           agent: data.agent || 'Claude 3.5 Sonnet',
           applicant: parsedApplicants,
-          payoutTxs: parsedPayoutTxs
+          payoutTxs: parsedPayoutTxs,
+          deliverables: parsedDeliverables,
+          ai_reports: parsedAiReports
         })
         if (data.status) {
           setJobStatus(data.status)
