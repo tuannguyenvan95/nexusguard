@@ -84,8 +84,8 @@ export default function CreateJobPage() {
         agent: formData.validatingAgent,
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
-        payoutType: formData.payoutType,
-        maxWinners: formData.maxWinners
+        payouttype: formData.payoutType,
+        maxwinners: formData.maxWinners
       }
 
       const supabase = createClient()

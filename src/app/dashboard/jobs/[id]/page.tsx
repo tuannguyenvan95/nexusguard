@@ -57,8 +57,8 @@ export default function JobDetailPage() {
           requirements: data.requirements || ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
           createdAt: data.date,
           deadline: data.date,
-          payoutType: data.payoutType || 'winner_takes_all',
-          maxWinners: data.maxWinners || '1',
+          payoutType: data.payouttype || 'winner_takes_all',
+          maxWinners: data.maxwinners || '1',
           agent: data.agent || 'Claude 3.5 Sonnet',
           applicant: data.applicant
         })
