@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Code, Link as LinkIcon, Loader2 } from 'lucide-react'
+import { Check, Code, Link as LinkIcon, Loader2, Wallet } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function JobDetailPage() {
@@ -20,6 +20,7 @@ export default function JobDetailPage() {
 
   const [githubUrl, setGithubUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
+  const [submitterWallet, setSubmitterWallet] = useState('')
   const [payoutTxHash, setPayoutTxHash] = useState('')
 
   // Mock data based on ID
@@ -61,7 +62,7 @@ export default function JobDetailPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!githubUrl || !previewUrl) return
+    if (!githubUrl || !previewUrl || !submitterWallet) return
     
     setIsSubmitting(true)
     // Simulate transaction delay
@@ -223,6 +224,11 @@ export default function JobDetailPage() {
               <h3 className="text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-4">SUBMITTED DELIVERABLE</h3>
               <div className="bg-black/50 border border-gray-800 rounded-sm p-4 mb-4 space-y-3">
                 <div className="flex items-center gap-3">
+                  <Wallet className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-400 text-xs">Submitter:</span>
+                  <span className="text-gray-200 text-sm font-mono truncate">{submitterWallet || "0x789...abc"}</span>
+                </div>
+                <div className="flex items-center gap-3">
                   <Code className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-400 text-xs">GitHub PR:</span>
                   <a href={githubUrl || "#"} className="text-[#d4af37] hover:underline text-sm truncate">{githubUrl || "github.com/org/repo/pull/42"}</a>
@@ -350,6 +356,17 @@ export default function JobDetailPage() {
             <p className="text-gray-400 text-xs font-mono mb-6">Enter your repository and preview links to submit your work for AI Validation.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4 font-mono">
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">Submitter Wallet (For Reward)</label>
+                <input
+                  type="text"
+                  required
+                  value={submitterWallet}
+                  onChange={(e) => setSubmitterWallet(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2 text-gray-200 text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
+                />
+              </div>
               <div>
                 <label className="block text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">GitHub Pull Request URL</label>
                 <input
