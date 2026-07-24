@@ -332,12 +332,12 @@ export default function JobDetailPage() {
 
               {/* Step 3 */}
               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={`flex items-center justify-center w-8 h-8 border shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-bold transition-colors ${jobStatus === 'Submitted' ? 'border-[#d4af37] bg-[#d4af37] text-black' : 'border-gray-700 bg-black text-gray-600'}`}>
+                <div className={`flex items-center justify-center w-8 h-8 border shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-bold transition-colors ${jobStatus === 'Submitted' || jobStatus === 'Completed' ? 'border-[#d4af37] bg-[#d4af37] text-black' : 'border-gray-700 bg-black text-gray-600'}`}>
                   ↑
                 </div>
-                <div className={`w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-3 border transition-colors ${jobStatus === 'Submitted' ? 'border-[#d4af37]/30 bg-[#d4af37]/5' : 'border-gray-800 bg-gray-900/50'}`}>
-                  <div className={`font-bold text-xs uppercase tracking-wider mb-1 ${jobStatus === 'Submitted' ? 'text-[#d4af37]' : 'text-gray-500'}`}>SUBMITTED</div>
-                  <div className="text-[10px] text-gray-500">{jobStatus === 'Submitted' ? 'Oct 26, 16:45' : 'PENDING'}</div>
+                <div className={`w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-3 border transition-colors ${jobStatus === 'Submitted' || jobStatus === 'Completed' ? 'border-[#d4af37]/30 bg-[#d4af37]/5' : 'border-gray-800 bg-gray-900/50'}`}>
+                  <div className={`font-bold text-xs uppercase tracking-wider mb-1 ${jobStatus === 'Submitted' || jobStatus === 'Completed' ? 'text-[#d4af37]' : 'text-gray-500'}`}>SUBMITTED</div>
+                  <div className="text-[10px] text-gray-500">{jobStatus === 'Submitted' || jobStatus === 'Completed' ? 'Oct 26, 16:45' : 'PENDING'}</div>
                 </div>
               </div>
               
