@@ -209,17 +209,20 @@ export default function JobDetailPage() {
         ])
         setTimeout(async () => {
           setIsAiValidating(false)
-          setJobStatus('Completed')
           setPayoutTxHash(data.txHash)
           setAiReport(data.report)
-          
           const updatedPayoutTxs = [...(job.payoutTxs || [])]
           updatedPayoutTxs.push({ address: submitterWallet, txHash: data.txHash })
           
           setJob(prev => ({ ...prev, payoutTxs: updatedPayoutTxs }))
 
+          const maxWinnersNum = parseInt(job.maxWinners) || 1
+          const newStatus = updatedPayoutTxs.length >= maxWinnersNum ? 'Completed' : 'In Progress'
+          
+          setJobStatus(newStatus)
+
           const supabase = createClient()
-          await supabase.from('nexus_jobs').update({ status: 'Completed', payout_txs: JSON.stringify(updatedPayoutTxs) }).eq('id', job.id)
+          await supabase.from('nexus_jobs').update({ status: newStatus, payout_txs: JSON.stringify(updatedPayoutTxs) }).eq('id', job.id)
         }, 1500)
       } else {
         setValidationLogs(prev => [...prev, '> ERROR: API CALL FAILED.'])
@@ -333,16 +336,15 @@ export default function JobDetailPage() {
                         <span className="text-gray-300 font-mono text-sm">{app}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        {jobStatus === 'Completed' && (
-                          payout ? (
-                            <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/30">
-                              <CheckCircle2 className="w-3 h-3" /> WINNER
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-red-400 text-xs font-bold bg-red-400/10 px-2 py-0.5 rounded border border-red-400/30">
-                              <XCircle className="w-3 h-3" /> LOST
-                            </span>
-                          )
+                        {payout && (
+                          <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/30">
+                            <CheckCircle2 className="w-3 h-3" /> WINNER
+                          </span>
+                        )}
+                        {!payout && jobStatus === 'Completed' && (
+                          <span className="flex items-center gap-1 text-red-400 text-xs font-bold bg-red-400/10 px-2 py-0.5 rounded border border-red-400/30">
+                            <XCircle className="w-3 h-3" /> LOST
+                          </span>
                         )}
                         {payout && (
                           <a 
