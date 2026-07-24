@@ -43,7 +43,7 @@ export default function CreateJobPage() {
       const from = accounts[0];
       
       let txValue = '0x0';
-      if (formData.currency === 'ETH' || formData.currency === 'ARC') {
+      if (formData.currency === 'ETH' || formData.currency === 'ARC' || formData.currency === 'USDC') {
         if (!formData.budget || isNaN(Number(formData.budget))) {
           alert("Vui lòng nhập số tiền hợp lệ!");
           setIsSubmitting(false);
