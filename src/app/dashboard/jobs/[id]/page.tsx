@@ -39,7 +39,8 @@ export default function JobDetailPage() {
     payoutType: 'winner_takes_all',
     maxWinners: '1',
     agent: 'Claude 3.5 Sonnet',
-    applicant: [] as string[]
+    applicant: [] as string[],
+    payoutTxs: [] as {address: string, txHash: string}[]
   })
 
   useEffect(() => {
@@ -57,6 +58,15 @@ export default function JobDetailPage() {
             parsedApplicants = [data.applicant]
           }
         }
+        let parsedPayoutTxs: {address: string, txHash: string}[] = []
+        if (data.payout_txs) {
+          try {
+            const parsed = typeof data.payout_txs === 'string' ? JSON.parse(data.payout_txs) : data.payout_txs
+            parsedPayoutTxs = Array.isArray(parsed) ? parsed : []
+          } catch (e) {
+            console.error(e)
+          }
+        }
 
         setJob({
           id: data.id,
@@ -70,7 +80,8 @@ export default function JobDetailPage() {
           payoutType: data.payouttype || 'winner_takes_all',
           maxWinners: data.maxwinners || '1',
           agent: data.agent || 'Claude 3.5 Sonnet',
-          applicant: parsedApplicants
+          applicant: parsedApplicants,
+          payoutTxs: parsedPayoutTxs
         })
         if (data.status) {
           setJobStatus(data.status)
@@ -95,7 +106,8 @@ export default function JobDetailPage() {
             payoutType: 'winner_takes_all',
             maxWinners: '1',
             agent: hardcodedJob.agent,
-            applicant: []
+            applicant: [],
+            payoutTxs: []
           })
           setJobStatus(hardcodedJob.status)
         }
@@ -201,8 +213,13 @@ export default function JobDetailPage() {
           setPayoutTxHash(data.txHash)
           setAiReport(data.report)
           
+          const updatedPayoutTxs = [...(job.payoutTxs || [])]
+          updatedPayoutTxs.push({ address: submitterWallet, txHash: data.txHash })
+          
+          setJob(prev => ({ ...prev, payoutTxs: updatedPayoutTxs }))
+
           const supabase = createClient()
-          await supabase.from('nexus_jobs').update({ status: 'Completed' }).eq('id', job.id)
+          await supabase.from('nexus_jobs').update({ status: 'Completed', payout_txs: JSON.stringify(updatedPayoutTxs) }).eq('id', job.id)
         }, 1500)
       } else {
         setValidationLogs(prev => [...prev, '> ERROR: API CALL FAILED.'])
@@ -300,22 +317,6 @@ export default function JobDetailPage() {
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
                 <div className="text-sm text-gray-300">{Array.isArray(job.applicant) ? job.applicant.length : 0} / {job.maxWinners}</div>
               </div>
-              <div>
-                <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PAYOUT TX</div>
-                <div className="text-sm text-gray-300">
-                  {jobStatus === 'Completed' && payoutTxHash ? (
-                    <a 
-                      href={`https://testnet.arcscan.app/tx/${payoutTxHash}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-[#d4af37] hover:underline flex items-center gap-1"
-                    >
-                      {payoutTxHash.substring(0, 6)}...{payoutTxHash.substring(payoutTxHash.length - 4)} <LinkIcon className="w-3 h-3" />
-                    </a>
-                  ) : (
-                    <span className="text-gray-500">PENDING</span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -324,12 +325,27 @@ export default function JobDetailPage() {
             <div className="bg-gray-900/40 border border-gray-800 rounded-sm p-6 relative">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">APPLICANTS LIST</h3>
               <div className="space-y-2">
-                {job.applicant.map((app: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-black/50 border border-gray-800 rounded-sm">
-                    <Wallet className="w-4 h-4 text-emerald-500" />
-                    <span className="text-gray-300 font-mono text-sm">{app}</span>
-                  </div>
-                ))}
+                {job.applicant.map((app: string, idx: number) => {
+                  const payout = (job.payoutTxs || []).find((p: any) => p.address.toLowerCase() === app.toLowerCase())
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-black/50 border border-gray-800 rounded-sm">
+                      <div className="flex items-center gap-3">
+                        <Wallet className="w-4 h-4 text-emerald-500" />
+                        <span className="text-gray-300 font-mono text-sm">{app}</span>
+                      </div>
+                      {payout && (
+                        <a 
+                          href={`https://testnet.arcscan.app/tx/${payout.txHash}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[#d4af37] text-xs hover:underline flex items-center gap-1 font-mono"
+                        >
+                          <span className="hidden sm:inline">TX: </span>{payout.txHash.substring(0, 6)}...{payout.txHash.substring(payout.txHash.length - 4)} <LinkIcon className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
