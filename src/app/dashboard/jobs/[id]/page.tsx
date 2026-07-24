@@ -210,7 +210,7 @@ export default function JobDetailPage() {
                       rel="noopener noreferrer"
                       className="text-[#d4af37] hover:underline flex items-center gap-1"
                     >
-                      {payoutTxHash}... <LinkIcon className="w-3 h-3" />
+                      {payoutTxHash.substring(0, 6)}...{payoutTxHash.substring(payoutTxHash.length - 4)} <LinkIcon className="w-3 h-3" />
                     </a>
                   ) : (
                     <span className="text-gray-500">PENDING</span>
