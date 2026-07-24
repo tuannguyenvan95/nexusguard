@@ -131,7 +131,9 @@ export default function JobDetailPage() {
             maxWinners: '1',
             agent: hardcodedJob.agent,
             applicant: [],
-            payoutTxs: []
+            payoutTxs: [],
+            deliverables: [],
+            ai_reports: {}
           })
           setJobStatus(hardcodedJob.status)
         }
