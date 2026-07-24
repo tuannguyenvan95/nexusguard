@@ -113,7 +113,7 @@ export default function DashboardPage() {
           <span>💰</span> Deposit to Escrow
         </button>
         <a 
-          href="https://explorer.arc.net/address/0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" 
+          href="https://testnet.arcscan.app/address/0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
