@@ -317,7 +317,6 @@ export default function JobDetailPage() {
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
                 <div className="text-sm text-gray-300">{Array.isArray(job.applicant) ? job.applicant.length : 0} / {job.maxWinners}</div>
               </div>
-              </div>
             </div>
           </div>
 
