@@ -43,8 +43,8 @@ export default function JobDetailPage() {
         title: foundJob.title,
         amount: foundJob.amount,
         provider: foundJob.provider,
-        description: 'Automated escrow task initialized via on-chain contract.',
-        requirements: ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
+        description: foundJob.description || 'Automated escrow task initialized via on-chain contract.',
+        requirements: foundJob.requirements || ['Proof of Work Verification', 'AI Consensus Validation', 'Secure Fund Release'],
         createdAt: foundJob.date,
         deadline: foundJob.date
       })

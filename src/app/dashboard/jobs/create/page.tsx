@@ -17,7 +17,8 @@ export default function CreateJobPage() {
     budget: '',
     currency: 'USDC',
     deadline: '',
-    description: ''
+    description: '',
+    requirements: 'Proof of Work Verification, AI Consensus Validation, Secure Fund Release'
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +77,9 @@ export default function CreateJobPage() {
         provider: from.substring(0, 6) + '...' + from.substring(from.length - 4),
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         risk: 'LOW',
-        agent: 'ESCROW NODE'
+        agent: 'ESCROW NODE',
+        description: formData.description || 'Automated escrow task initialized via on-chain contract.',
+        requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean)
       }
 
       const existingJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
@@ -171,9 +174,24 @@ export default function CreateJobPage() {
               required
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              rows={5}
+              rows={4}
               className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors resize-none"
               placeholder="Describe the task, requirements, and acceptance criteria..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest flex justify-between">
+              <span>AI System Requirements</span>
+              <span className="text-[9px] text-gray-600">Comma separated</span>
+            </label>
+            <input 
+              type="text" 
+              required
+              value={formData.requirements}
+              onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+              className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-[#d4af37] font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
+              placeholder="e.g. Code Coverage > 90%, AI Vision Match"
             />
           </div>
 
