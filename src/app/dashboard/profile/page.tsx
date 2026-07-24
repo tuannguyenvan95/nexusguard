@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, Variants } from 'framer-motion'
 import { Wallet, Activity, Code2, CheckCircle2, CircleDashed } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -23,6 +24,7 @@ const itemVariants: Variants = {
 export default function ProfilePage() {
   const [userAddress, setUserAddress] = useState<string>('Not Connected')
   const [createdJobs, setCreatedJobs] = useState<any[]>([])
+  const [userName, setUserName] = useState<string>('Loading...')
 
   useEffect(() => {
     // Lấy địa chỉ ví từ localStorage hoặc ethereum window
@@ -49,8 +51,19 @@ export default function ProfilePage() {
       }
     }
 
+    const fetchUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+      } else {
+        setUserName('Guest')
+      }
+    }
+
     fetchWallet()
     fetchJobs()
+    fetchUser()
   }, [])
 
   const formatAddress = (addr: string) => {
@@ -60,7 +73,7 @@ export default function ProfilePage() {
 
   // Dữ liệu Mock cho Demo
   const stats = [
-    { label: 'Wallet Balance', value: '15,240 ARC', change: '+2.5%', id: 'BAL-01' },
+    { label: 'Wallet Balance', value: '15,240 USDC', change: '+2.5%', id: 'BAL-01' },
     { label: 'Escrow Deposits', value: '4,500 USDC', change: '3 Active Jobs', id: 'ESC-02' },
     { label: 'Projects Created', value: createdJobs.length.toString(), change: 'Total', id: 'PRJ-03' },
     { label: 'Jobs Completed', value: '12', change: 'As Developer', id: 'CPL-04' }
@@ -109,26 +122,31 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div>
-                <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{formatAddress(userAddress)}</h2>
-                <p className="text-xs text-gray-500 font-mono uppercase">NexusGuard Citizen</p>
+                <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{userName}</h2>
+                <p className="text-xs text-gray-500 font-mono uppercase">{formatAddress(userAddress)} • NexusGuard Citizen</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="p-3 bg-gray-900/50 border border-gray-800 rounded-sm flex items-center justify-between group-hover:border-[#d4af37]/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-[#1DA1F2]" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
-                  <span className="text-sm font-mono text-gray-300">Twitter</span>
+              {[
+                { name: 'Twitter', color: '#1DA1F2', path: 'M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z' },
+                { name: 'GitHub', color: '#ffffff', path: 'M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z' },
+                { name: 'Discord', color: '#5865F2', path: 'M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z' },
+                { name: 'Telegram', color: '#24A1DE', path: 'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.892-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z' },
+                { name: 'Google', color: '#EA4335', path: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z' }
+              ].map((social) => (
+                <div key={social.name} className="p-3 bg-gray-900/50 border border-gray-800 rounded-sm flex items-center justify-between group-hover:border-[#d4af37]/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-4 h-4" style={{ color: social.color }} fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" clipRule="evenodd" d={social.path} />
+                    </svg>
+                    <span className="text-sm font-mono text-gray-300">{social.name}</span>
+                  </div>
+                  <button className="text-[10px] font-mono text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 bg-gray-800/50 hover:bg-gray-700/50 px-2 py-1 rounded-sm transition-colors uppercase">
+                    Connect
+                  </button>
                 </div>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-sm">Connected</span>
-              </div>
-              <div className="p-3 bg-gray-900/50 border border-gray-800 rounded-sm flex items-center justify-between group-hover:border-[#d4af37]/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-                  <span className="text-sm font-mono text-gray-300">GitHub</span>
-                </div>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-sm">Connected</span>
-              </div>
+              ))}
             </div>
           </motion.div>
 
