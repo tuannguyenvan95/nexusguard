@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Code, Link as LinkIcon, Loader2, Wallet } from 'lucide-react'
+import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function JobDetailPage() {
@@ -21,6 +21,7 @@ export default function JobDetailPage() {
   const [githubUrl, setGithubUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
   const [submitterWallet, setSubmitterWallet] = useState('')
+  const [socialHandle, setSocialHandle] = useState('')
   const [payoutTxHash, setPayoutTxHash] = useState('')
 
   // Mock data based on ID
@@ -228,6 +229,13 @@ export default function JobDetailPage() {
                   <span className="text-gray-400 text-xs">Submitter:</span>
                   <span className="text-gray-200 text-sm font-mono truncate">{submitterWallet || "0x789...abc"}</span>
                 </div>
+                {socialHandle && (
+                  <div className="flex items-center gap-3">
+                    <AtSign className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-400 text-xs">Contact:</span>
+                    <span className="text-[#d4af37] text-sm truncate">{socialHandle}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <Code className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-400 text-xs">GitHub PR:</span>
@@ -364,6 +372,16 @@ export default function JobDetailPage() {
                   value={submitterWallet}
                   onChange={(e) => setSubmitterWallet(e.target.value)}
                   placeholder="0x..."
+                  className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2 text-gray-200 text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">Social Handle <span className="text-gray-600">(Optional)</span></label>
+                <input
+                  type="text"
+                  value={socialHandle}
+                  onChange={(e) => setSocialHandle(e.target.value)}
+                  placeholder="@username (X/Discord/Telegram)"
                   className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2 text-gray-200 text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
                 />
               </div>
