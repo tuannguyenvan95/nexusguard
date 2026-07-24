@@ -160,9 +160,13 @@ export default function JobDetailPage() {
     setIsSubmitting(true)
     // Simulate transaction delay
     setTimeout(async () => {
+      const newDeliverable = { submitterWallet, githubUrl, previewUrl, socialHandle }
+      const updatedDeliverables = [...(job.deliverables || []), newDeliverable]
+      
       const supabase = createClient()
-      await supabase.from('nexus_jobs').update({ status: 'Submitted' }).eq('id', job.id)
+      await supabase.from('nexus_jobs').update({ status: 'Submitted', deliverables: JSON.stringify(updatedDeliverables) }).eq('id', job.id)
 
+      setJob(prev => ({ ...prev, deliverables: updatedDeliverables }))
       setIsSubmitting(false)
       setIsModalOpen(false)
       setJobStatus('Submitted')
@@ -217,15 +221,20 @@ export default function JobDetailPage() {
           const updatedPayoutTxs = [...(job.payoutTxs || [])]
           updatedPayoutTxs.push({ address: submitterWallet, txHash: data.txHash })
           
-          setJob(prev => ({ ...prev, payoutTxs: updatedPayoutTxs }))
+          const updatedReports = { ...(job.ai_reports || {}), [submitterWallet]: data.report }
 
           const maxWinnersNum = parseInt(job.maxWinners) || 1
           const newStatus = updatedPayoutTxs.length >= maxWinnersNum ? 'Completed' : 'In Progress'
           
+          setJob(prev => ({ ...prev, payoutTxs: updatedPayoutTxs, ai_reports: updatedReports }))
           setJobStatus(newStatus)
 
           const supabase = createClient()
-          await supabase.from('nexus_jobs').update({ status: newStatus, payout_txs: JSON.stringify(updatedPayoutTxs) }).eq('id', job.id)
+          await supabase.from('nexus_jobs').update({ 
+            status: newStatus, 
+            payout_txs: JSON.stringify(updatedPayoutTxs),
+            ai_reports: JSON.stringify(updatedReports)
+          }).eq('id', job.id)
         }, 1500)
       } else {
         setValidationLogs(prev => [...prev, `> ERROR: ${data.error || 'API CALL FAILED.'}`])
@@ -367,13 +376,14 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {jobStatus === 'Submitted' && (
+          {(job.deliverables || []).map((del: any, idx: number) => (
             <motion.div 
+              key={idx}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-[#d4af37]/5 border border-[#d4af37]/30 rounded-sm p-8 relative"
+              className="bg-black/40 border border-[#d4af37]/30 rounded-sm p-8 relative mb-6"
             >
-               {/* Corner Accents */}
+              {/* Corner Accents */}
               <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#d4af37]" />
               <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#d4af37]" />
               <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#d4af37]" />
@@ -384,29 +394,35 @@ export default function JobDetailPage() {
                 <div className="flex items-center gap-3">
                   <Wallet className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-400 text-xs">Submitter:</span>
-                  <span className="text-gray-200 text-sm font-mono truncate">{submitterWallet || "0x789...abc"}</span>
+                  <span className="text-gray-200 text-sm font-mono truncate">{del.submitterWallet}</span>
                 </div>
-                {socialHandle && (
+                {del.socialHandle && (
                   <div className="flex items-center gap-3">
                     <AtSign className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-400 text-xs">Contact:</span>
-                    <span className="text-[#d4af37] text-sm truncate">{socialHandle}</span>
+                    <span className="text-[#d4af37] text-sm truncate">{del.socialHandle}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3">
                   <Code className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-400 text-xs">GitHub PR:</span>
-                  <a href={githubUrl || "#"} className="text-[#d4af37] hover:underline text-sm truncate">{githubUrl || "github.com/org/repo/pull/42"}</a>
+                  <a href={del.githubUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.githubUrl}</a>
                 </div>
                 <div className="flex items-center gap-3">
                   <LinkIcon className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-400 text-xs">Preview:</span>
-                  <a href={previewUrl || "#"} className="text-[#d4af37] hover:underline text-sm truncate">{previewUrl || "dashboard-preview.vercel.app"}</a>
+                  <a href={del.previewUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.previewUrl}</a>
                 </div>
               </div>
               <p className="text-gray-400 text-xs">Provider notes: "Completed all requirements. Code is ready for AI Validation."</p>
+
+              {job.ai_reports && job.ai_reports[del.submitterWallet] && (
+                <div className="mt-4 pt-4 border-t border-gray-800 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
+                  {job.ai_reports[del.submitterWallet]}
+                </div>
+              )}
             </motion.div>
-          )}
+          ))}
 
           {jobStatus === 'Completed' && (
             <motion.div 
@@ -435,12 +451,7 @@ export default function JobDetailPage() {
                   <span className="text-emerald-400 font-bold">{job.amount}</span>
                 </div>
               </div>
-              
-              {aiReport && (
-                <div className="mt-6 pt-6 border-t border-emerald-900/50 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
-                  {aiReport}
-                </div>
-              )}
+              {/* Report has been moved up into the deliverables list */}
             </motion.div>
           )}
         </div>
