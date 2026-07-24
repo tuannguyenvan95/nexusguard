@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, Variants } from 'framer-motion'
+import { useState } from 'react'
+import { motion, Variants, AnimatePresence } from 'framer-motion'
 import { LiveTreasuryChart } from '@/components/dashboard/LiveTreasuryChart'
 
 const containerVariants: Variants = {
@@ -19,6 +20,16 @@ const itemVariants: Variants = {
 }
 
 export default function DashboardPage() {
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  
+  const agentDetails = {
+    'Escrow': { model: 'GPT-4o', status: 'SYNCED', gas: '124.5 Gwei', success: '99.99%', tasks: 124 },
+    'Validation': { model: 'Claude 3.5 Sonnet', status: 'ACTIVE', gas: '45.2 Gwei', success: '99.85%', tasks: 89 },
+    'Compliance': { model: 'GPT-4o-mini', status: 'SYNCED', gas: '12.1 Gwei', success: '100%', tasks: 45 },
+    'Payment': { model: 'Arc Native Oracle', status: 'ACTIVE', gas: '8.4 Gwei', success: '100%', tasks: 210 },
+    'Risk': { model: 'Llama 3 70B', status: 'ANALYZING', gas: '245.8 Gwei', success: '98.50%', tasks: 12 },
+  }
+
   return (
     <motion.div 
       className="space-y-8"
@@ -176,6 +187,7 @@ export default function DashboardPage() {
             <motion.div 
               whileHover={{ y: -2 }}
               key={agent} 
+              onClick={() => setSelectedAgent(agent)}
               className="p-4 rounded-sm border border-gray-800 bg-gray-900/30 relative group cursor-pointer hover:border-[#d4af37]/30 transition-colors"
             >
               {/* Corner accents */}
@@ -192,6 +204,73 @@ export default function DashboardPage() {
           ))}
         </div>
       </motion.div>
+
+      {/* Agent Detail Modal */}
+      <AnimatePresence>
+        {selectedAgent && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSelectedAgent(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#0a0e1a] border border-[#d4af37]/50 p-6 rounded-sm max-w-md w-full relative overflow-hidden"
+            >
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#d4af37]" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#d4af37]" />
+              
+              <div className="flex justify-between items-start mb-6 border-b border-gray-800 pb-4">
+                <div>
+                  <h3 className="text-xl font-space-grotesk font-bold text-white tracking-tight uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>
+                    {selectedAgent} Agent
+                  </h3>
+                  <p className="text-xs text-gray-400 font-mono mt-1">Autonomous Node Config</p>
+                </div>
+                <button onClick={() => setSelectedAgent(null)} className="text-gray-500 hover:text-white transition-colors">
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4 font-mono text-sm">
+                <div className="flex justify-between items-center p-2 bg-gray-900/50 rounded-sm border border-gray-800">
+                  <span className="text-gray-400">Core Model</span>
+                  <span className="text-[#d4af37]">{agentDetails[selectedAgent as keyof typeof agentDetails]?.model}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-gray-900/50 rounded-sm border border-gray-800">
+                  <span className="text-gray-400">Node Status</span>
+                  <span className="text-emerald-400">{agentDetails[selectedAgent as keyof typeof agentDetails]?.status}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-gray-900/50 rounded-sm border border-gray-800">
+                  <span className="text-gray-400">Gas Consumed</span>
+                  <span className="text-white">{agentDetails[selectedAgent as keyof typeof agentDetails]?.gas}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-gray-900/50 rounded-sm border border-gray-800">
+                  <span className="text-gray-400">Success Rate</span>
+                  <span className="text-emerald-400">{agentDetails[selectedAgent as keyof typeof agentDetails]?.success}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-gray-900/50 rounded-sm border border-gray-800">
+                  <span className="text-gray-400">Jobs Processed</span>
+                  <span className="text-white">{agentDetails[selectedAgent as keyof typeof agentDetails]?.tasks}</span>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-800 flex justify-end">
+                <button onClick={() => setSelectedAgent(null)} className="px-4 py-2 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/10 font-mono text-xs uppercase tracking-widest transition-colors">
+                  Close Terminal
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
