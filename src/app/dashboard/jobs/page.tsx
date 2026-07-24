@@ -20,7 +20,7 @@ export default function JobsPage() {
     { id: 'job_004', title: 'Security Review Phase 1', amount: '8,000 USDC', status: 'Completed', provider: '0x789...ghi', date: 'Oct 15, 2026', risk: 'LOW', agent: 'GUARDIAN NODE' },
   ]
 
-  const tabs = ['My Jobs', 'All', 'Draft', 'Funded', 'Submitted', 'Completed']
+  const tabs = ['All', 'New', 'My Jobs', 'Draft', 'Funded', 'Submitted', 'Completed']
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -43,49 +43,45 @@ export default function JobsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="border-b border-gray-800 pb-4">
+      <div className="flex justify-between items-end border-b border-gray-800 pb-4">
         <div>
           <h1 className="text-3xl font-space-grotesk font-bold mb-1 text-[#d4af37] uppercase tracking-tight">Jobs & Escrow_</h1>
           <p className="text-gray-400 font-mono text-sm uppercase tracking-widest">Manage ERC-8183 job contracts and automated escrows</p>
         </div>
+        <Link 
+          href="/dashboard/jobs/create"
+          className="border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2 group relative overflow-hidden"
+        >
+          {/* Scanline effect on hover */}
+          <div className="absolute inset-0 w-full h-[1px] bg-[#d4af37]/50 -translate-y-full group-hover:animate-scanline" />
+          <TerminalSquare className="w-4 h-4 group-hover:animate-pulse" /> 
+          [+] INITIATE NEW CONTRACT
+        </Link>
       </div>
 
-      {/* Tabs & Actions */}
-      <div className="flex justify-between items-end border-b border-gray-800 pb-px">
-        <div className="flex space-x-2">
-          {tabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2.5 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-all duration-300 relative ${
-                activeTab === tab 
-                  ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' 
-                  : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
-              }`}
-            >
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,1)]" />
-              )}
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className="pb-1.5 pr-2">
-          <Link 
-            href="/dashboard/jobs/create"
-            className="border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-4 py-2 rounded-sm font-mono text-[10px] uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2 group relative overflow-hidden"
+      {/* Tabs */}
+      <div className="flex space-x-2 border-b border-gray-800 pb-px overflow-x-auto">
+        {tabs.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2.5 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-all duration-300 relative whitespace-nowrap ${
+              activeTab === tab 
+                ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' 
+                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
+            }`}
           >
-            {/* Scanline effect on hover */}
-            <div className="absolute inset-0 w-full h-[1px] bg-[#d4af37]/50 -translate-y-full group-hover:animate-scanline" />
-            <TerminalSquare className="w-3 h-3 group-hover:animate-pulse" /> 
-            [+] NEW JOB
-          </Link>
-        </div>
+            {activeTab === tab && (
+              <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,1)]" />
+            )}
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' ? true : activeTab === 'My Jobs' ? localJobs.some(l => l.id === j.id) : j.status === activeTab).map((job) => (
+        {[...localJobs, ...mockJobs].filter(j => activeTab === 'All' ? true : activeTab === 'New' ? (j.status === 'Funded' || j.status === 'Draft') : activeTab === 'My Jobs' ? localJobs.some(l => l.id === j.id) : j.status === activeTab).map((job) => (
           <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
             <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
               {/* Background Hash Log (Aesthetic) */}
