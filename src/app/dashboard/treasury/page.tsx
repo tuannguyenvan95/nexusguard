@@ -74,27 +74,66 @@ export default function TreasuryPage() {
 
   const fetchTransactions = async (address: string, currentBalance: number) => {
     try {
-      const res = await fetch(`https://testnet.arcscan.app/api?module=account&action=tokentx&contractaddress=0x3600000000000000000000000000000000000000&address=${address}&page=1&offset=10&sort=desc`)
-      const data = await res.json()
-      if (data.status === "1" && data.result) {
-        setTransactions(data.result)
-        
-        let runningBalance = currentBalance;
-        const history = [];
-        history.push({ name: 'Now', balance: runningBalance });
-
-        for (let i = 0; i < data.result.length; i++) {
-          const tx = data.result[i];
-          const isReceive = tx.to.toLowerCase() === address.toLowerCase();
-          const amount = parseFloat(ethers.formatUnits(tx.value, 6));
+      const supabase = createClient()
+      const { data } = await supabase.from('nexus_jobs').select('*')
+      if (data) {
+        let txs: any[] = [];
+        data.forEach(job => {
+          let pAddress = job.provider;
+          try {
+            if (pAddress && pAddress.startsWith('{')) pAddress = JSON.parse(pAddress).address;
+          } catch(e){}
           
-          if (isReceive) {
+          const jobValue = job.amount ? job.amount.replace(/[^\d.]/g, '') : '0'
+
+          // Outbound: Created job
+          if (pAddress?.toLowerCase() === address.toLowerCase() && (job.status === 'Funded' || job.status === 'In Progress' || job.status === 'Completed')) {
+            txs.push({
+              hash: `JOB_${job.id}`,
+              timeStamp: new Date(job.created_at).getTime() / 1000,
+              to: 'Escrow Contract',
+              from: address,
+              value: ethers.parseEther(jobValue),
+              isSend: true,
+              isReceive: false,
+              details: `Escrow Deposit: ${job.title}`
+            });
+          }
+
+          // Inbound: Received payout
+          if (job.payoutTxs && Array.isArray(job.payoutTxs)) {
+            job.payoutTxs.forEach(p => {
+              if (p.address?.toLowerCase() === address.toLowerCase()) {
+                txs.push({
+                  hash: p.txHash || `PAYOUT_${job.id}`,
+                  timeStamp: new Date(p.timestamp || job.created_at).getTime() / 1000,
+                  from: 'Escrow Contract',
+                  to: address,
+                  value: ethers.parseEther(p.amount ? p.amount.toString() : '0'),
+                  isSend: false,
+                  isReceive: true,
+                  details: `Payout: ${job.title}`
+                })
+              }
+            })
+          }
+        })
+
+        txs.sort((a, b) => b.timeStamp - a.timeStamp)
+        setTransactions(txs)
+
+        let runningBalance = currentBalance;
+        const history = [{ name: 'Now', balance: runningBalance }];
+        
+        for (let i = 0; i < txs.length; i++) {
+          const tx = txs[i];
+          const amount = parseFloat(ethers.formatEther(tx.value));
+          if (tx.isReceive) {
             runningBalance -= amount;
           } else {
             runningBalance += amount;
           }
-          
-          const date = new Date(parseInt(tx.timeStamp) * 1000);
+          const date = new Date(tx.timeStamp * 1000);
           history.push({
             name: `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`,
             balance: runningBalance > 0 ? runningBalance : 0
@@ -102,11 +141,8 @@ export default function TreasuryPage() {
         }
         
         setChartData(history.reverse());
-      } else {
-        setTransactions([])
-        setChartData([])
       }
-    } catch (err) {
+    } catch(err) {
       console.error(err)
     }
   }
@@ -151,21 +187,10 @@ export default function TreasuryPage() {
           }
 
           const provider = new ethers.BrowserProvider(ethereum)
-          const usdcAddress = "0x3600000000000000000000000000000000000000";
-          const usdcAbi = [{
-            "constant": true,
-            "inputs": [{ "name": "_owner", "type": "address" }],
-            "name": "balanceOf",
-            "outputs": [{ "name": "balance", "type": "uint256" }],
-            "type": "function"
-          }];
-          const contract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          
-          const rawBalance = await contract.balanceOf(accounts[0]);
-          // USDC ERC-20 uses 6 decimals
-          const formatted = ethers.formatUnits(rawBalance, 6)
+          const rawBalance = await provider.getBalance(accounts[0]);
+          const formatted = ethers.formatEther(rawBalance)
           const numFormatted = parseFloat(formatted)
-          setBalance(numFormatted.toFixed(2) + ' USDC')
+          setBalance(numFormatted.toFixed(4) + ' USDC')
           setUserAddress(accounts[0])
           fetchTransactions(accounts[0], numFormatted)
         }
@@ -478,31 +503,35 @@ export default function TreasuryPage() {
                     <td colSpan={5} className="py-8 text-center text-gray-500">No transactions recorded in ledger</td>
                   </tr>
                 ) : transactions.map((tx, idx) => {
-                  const isReceive = tx.to.toLowerCase() === userAddress.toLowerCase()
+                  const isReceive = tx.isReceive;
                   const type = isReceive ? 'RCV' : 'SND'
                   const address = isReceive ? tx.from : tx.to
-                  const amount = ethers.formatUnits(tx.value, 6)
-                  const date = new Date(parseInt(tx.timeStamp) * 1000).toLocaleString()
+                  const amount = ethers.formatEther(tx.value)
+                  const date = new Date(tx.timeStamp * 1000).toLocaleString()
 
                   return (
-                    <tr key={tx.hash} className={`border-b border-gray-800/30 group hover:bg-[#d4af37]/5 transition-colors relative ${idx % 2 === 0 ? 'bg-gray-900/10' : ''}`}>
+                    <tr key={idx} className={`border-b border-gray-800/30 group hover:bg-[#d4af37]/5 transition-colors relative ${idx % 2 === 0 ? 'bg-gray-900/10' : ''}`}>
                       <td className="py-4 pl-2 text-gray-400 text-[10px] group-hover:text-white transition-colors">{date}</td>
                       <td className="py-4">
                         <span className={`px-2 py-1 rounded-sm border text-[9px] font-bold uppercase tracking-wider ${isReceive ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : 'text-[#d4af37] border-[#d4af37]/30 bg-[#d4af37]/10'}`}>
                           {type}
                         </span>
                       </td>
-                      <td className="py-4 text-gray-300 text-[11px]">{isReceive ? 'Inbound Transfer' : 'Outbound Transfer'}</td>
+                      <td className="py-4 text-gray-300 text-[11px]">{tx.details || (isReceive ? 'Inbound Transfer' : 'Outbound Transfer')}</td>
                       <td className="py-4 text-gray-500 text-[10px]">
                         <div className="flex flex-col gap-0.5">
-                          <a href={`https://testnet.arcscan.app/tx/${tx.hash}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">
-                            {tx.hash.slice(0, 10)}...
-                          </a>
-                          <span>{address.slice(0,8)}...{address.slice(-4)}</span>
+                          {tx.hash.startsWith('0x') ? (
+                            <a href={`https://testnet.arcscan.app/tx/${tx.hash}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">
+                              {tx.hash.slice(0, 15)}...
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 font-bold">{tx.hash}</span>
+                          )}
+                          <span className="text-[9px] text-gray-600 truncate max-w-[120px]">{address}</span>
                         </div>
                       </td>
-                      <td className={`py-4 pr-2 text-right font-bold text-sm ${isReceive ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-[#d4af37] drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]'}`}>
-                        {isReceive ? '+' : '-'}{parseFloat(amount).toFixed(2)} USDC
+                      <td className={`py-4 pr-2 text-right font-bold text-xs ${isReceive ? 'text-emerald-400' : 'text-[#d4af37]'}`}>
+                        {isReceive ? '+' : '-'}{parseFloat(amount).toFixed(4)} USDC
                       </td>
                     </tr>
                   )
