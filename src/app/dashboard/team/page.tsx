@@ -3,6 +3,7 @@
 import { Shield, BrainCircuit, Activity, Clock, Terminal, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
+import Link from 'next/link'
 
 export default function TeamPage() {
   const [email, setEmail] = useState('')
@@ -170,9 +171,9 @@ export default function TeamPage() {
               { name: 'GUARDIAN NODE', status: 'ACTIVE', util: '45%', icon: '🛡️' },
               { name: 'COMPLIANCE NODE', status: 'IDLE', util: '0%', icon: '⚖️' },
             ].map((node, i) => (
-              <div key={i} className="bg-black/30 border border-gray-800/50 rounded-sm p-3 hover:border-gray-700 transition-colors">
+              <Link href="/dashboard/agents" key={i} className="bg-black/30 border border-gray-800/50 rounded-sm p-3 hover:border-gray-700 transition-colors block cursor-pointer group">
                 <div className="flex justify-between items-start mb-1">
-                  <div className="text-[10px] font-bold text-gray-300 font-mono flex items-center gap-1.5">
+                  <div className="text-[10px] font-bold text-gray-300 font-mono flex items-center gap-1.5 group-hover:text-white transition-colors">
                     <span className="text-xs">{node.icon}</span> {node.name}
                   </div>
                 </div>
@@ -182,7 +183,7 @@ export default function TeamPage() {
                   </span>
                   <span className="text-gray-500">Util: {node.util}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
