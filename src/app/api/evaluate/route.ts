@@ -57,36 +57,50 @@ export async function POST(request: Request) {
     let txHash = '0xb3db9f1ba6556a0a8948ac83a22b85e8e5d87e37ead2800829013003b01cb48d' 
     
     try {
-      const privateKey = process.env.TREASURY_PRIVATE_KEY
+      const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.TREASURY_PRIVATE_KEY
       if (privateKey) {
         // Kết nối mạng Arc Testnet
         const provider = new ethers.JsonRpcProvider('https://rpc.testnet.arc.network')
         const wallet = new ethers.Wallet(privateKey, provider)
         
-        let numericAmount = 10;
-        if (totalAmount) {
-          const parsed = parseFloat(totalAmount.replace(/,/g, '').replace(/[^\d.]/g, ''))
-          if (!isNaN(parsed)) numericAmount = parsed;
-        }
+        const contractAddress = '0xECF383892b85CA8e8977f175137567E5bDa02FF0';
+        const abi = ["function releaseFunds(string calldata jobId, address payable freelancer) external"];
+        const contract = new ethers.Contract(contractAddress, abi, wallet);
 
-        if (payoutType === 'pool_funding') {
-          const winners = parseInt(maxWinners) || 1
-          numericAmount = numericAmount / winners
-        }
+        try {
+          console.log(`Calling releaseFunds on Escrow for Job: ${jobId}, Freelancer: ${submitterWallet}...`);
+          const tx = await contract.releaseFunds(jobId, submitterWallet);
+          await tx.wait(); // Chờ confirm
+          console.log(`Escrow released successfully! Hash: ${tx.hash}`);
+          txHash = tx.hash;
+        } catch (contractError) {
+          console.error("Smart Contract execution failed (maybe old job/unfunded). Falling back to direct Treasury transfer...");
+          
+          let numericAmount = 10;
+          if (totalAmount) {
+            const parsed = parseFloat(totalAmount.replace(/,/g, '').replace(/[^\d.]/g, ''))
+            if (!isNaN(parsed)) numericAmount = parsed;
+          }
 
-        const amount = ethers.parseEther(numericAmount.toString())
-        
-        console.log(`Sending ${numericAmount} Native USDC to ${submitterWallet}...`)
-        const tx = await wallet.sendTransaction({
-          to: submitterWallet,
-          value: amount
-        })
-        await tx.wait() // Chờ confirm
-        console.log(`Transfer successful! Hash: ${tx.hash}`)
-        txHash = tx.hash // Gán Hash thật
+          if (payoutType === 'pool_funding') {
+            const winners = parseInt(maxWinners) || 1
+            numericAmount = numericAmount / winners
+          }
+
+          const amount = ethers.parseEther(numericAmount.toString())
+          
+          console.log(`Sending ${numericAmount} Native USDC to ${submitterWallet}...`)
+          const tx = await wallet.sendTransaction({
+            to: submitterWallet,
+            value: amount
+          })
+          await tx.wait() // Chờ confirm
+          console.log(`Transfer successful! Hash: ${tx.hash}`)
+          txHash = tx.hash // Gán Hash thật
+        }
       } else {
-        console.warn("No TREASURY_PRIVATE_KEY found in .env.local, using mock transaction.")
-        return NextResponse.json({ success: false, error: 'TREASURY_PRIVATE_KEY is not configured on the server.' })
+        console.warn("No DEPLOYER_PRIVATE_KEY found in .env.local, using mock transaction.")
+        return NextResponse.json({ success: false, error: 'DEPLOYER_PRIVATE_KEY is not configured on the server.' })
       }
     } catch (e: any) {
       console.error("Failed to execute real on-chain transaction:", e)
