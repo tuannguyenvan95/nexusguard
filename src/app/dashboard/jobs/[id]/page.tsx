@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle, Building2 } from 'lucide-react'
+import Link from 'next/link'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { createClient } from '@/lib/supabase/client'
 
