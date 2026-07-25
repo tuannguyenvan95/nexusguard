@@ -428,7 +428,8 @@ export default function JobDetailPage() {
             </span>
           </div>
           <div className="flex items-center gap-3 mt-1">
-            <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo.name)}`} className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden hover:border-[#d4af37] transition-colors cursor-pointer">
+            {/* CACHE BUSTER 2026-07-26 */}
+            <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo?.name === 'undefined' ? 'UNKNOWN' : (providerInfo?.name || 'UNKNOWN'))}`} className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden hover:border-[#d4af37] transition-colors cursor-pointer">
               {providerInfo.avatar ? (
                 <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
               ) : (
@@ -436,8 +437,8 @@ export default function JobDetailPage() {
               )}
             </Link>
             <p className="text-gray-400 text-xs uppercase tracking-widest flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-              <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo.name)}`} className="text-gray-200 font-bold hover:text-[#d4af37] transition-colors hover:underline cursor-pointer">
-                {providerInfo.name}
+              <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo?.name === 'undefined' ? 'UNKNOWN' : (providerInfo?.name || 'UNKNOWN'))}`} className="text-gray-200 font-bold hover:text-[#d4af37] transition-colors hover:underline cursor-pointer">
+                {providerInfo?.name === 'undefined' ? 'UNKNOWN' : providerInfo?.name}
               </Link> 
               <span className="hidden md:inline text-gray-700">•</span>
               <span>JOB_ID: {job.id}</span>
