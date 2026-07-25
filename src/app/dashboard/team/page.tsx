@@ -267,7 +267,11 @@ export default function TeamPage() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 border border-gray-700 bg-black/50 flex items-center justify-center text-xl font-space-grotesk font-bold text-gray-300 group-hover:border-[#d4af37] group-hover:text-[#d4af37] transition-colors relative">
-                  {member.avatar}
+                  {member.avatarUrl ? (
+                    <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                  ) : (
+                    member.avatar
+                  )}
                   {/* Status indicator */}
                   <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border border-black ${
                     member.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
@@ -327,8 +331,25 @@ export default function TeamPage() {
             </button>
             
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-800">
-              <div className="w-16 h-16 border border-[#d4af37] bg-[#d4af37]/10 flex items-center justify-center text-2xl font-space-grotesk font-bold text-[#d4af37]">
-                {selectedMember.avatar}
+              <div 
+                className="w-16 h-16 border border-[#d4af37] bg-[#d4af37]/10 flex items-center justify-center text-2xl font-space-grotesk font-bold text-[#d4af37] relative group cursor-pointer"
+                onClick={() => {
+                  const url = window.prompt("Enter Logo/Avatar image URL (leave empty to revert to text):", selectedMember.avatarUrl || "");
+                  if (url !== null) {
+                    const updatedMembers = mockMembers.map((m: any) => m.id === selectedMember.id ? {...m, avatarUrl: url} : m);
+                    setMockMembers(updatedMembers);
+                    setSelectedMember({...selectedMember, avatarUrl: url});
+                  }
+                }}
+              >
+                {selectedMember.avatarUrl ? (
+                  <img src={selectedMember.avatarUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
+                ) : (
+                  selectedMember.avatar
+                )}
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[9px] text-white font-mono uppercase tracking-widest text-center px-1">Change Logo</span>
+                </div>
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-200 uppercase tracking-tight">{selectedMember.name}</h2>
