@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { BrainCircuit, ShieldAlert, TerminalSquare, Search } from 'lucide-react'
+import { BrainCircuit, ShieldAlert, TerminalSquare, Search, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function JobsPage() {
@@ -129,9 +129,25 @@ export default function JobsPage() {
 
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <div className="text-[10px] text-[#d4af37] font-mono tracking-widest mb-1.5 flex items-center gap-2">
-                    <TerminalSquare className="w-3 h-3" />
-                    ID: {job.id}
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Provider Logo / Avatar */}
+                    <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
+                      {job.provider && job.provider.includes('0x') ? (
+                        <Building2 className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <span className="text-[#d4af37] font-bold font-space-grotesk">{job.provider ? job.provider.charAt(0).toUpperCase() : 'N'}</span>
+                      )}
+                    </div>
+                    {/* Provider Name and Job ID */}
+                    <div className="flex flex-col">
+                      <div className="text-[11px] text-gray-300 font-bold font-mono tracking-widest uppercase">
+                        {job.provider && job.provider.length > 15 ? `${job.provider.substring(0, 6)}...${job.provider.substring(job.provider.length - 4)}` : (job.provider || 'NEXUS CLIENT')}
+                      </div>
+                      <div className="text-[9px] text-[#d4af37] font-mono tracking-widest flex items-center gap-1 mt-0.5">
+                        <TerminalSquare className="w-2.5 h-2.5" />
+                        ID: {job.id}
+                      </div>
+                    </div>
                   </div>
                   <h3 className="text-xl font-space-grotesk font-bold text-gray-200 group-hover:text-[#d4af37] transition-colors uppercase tracking-tight">{job.title}</h3>
                 </div>
@@ -158,16 +174,12 @@ export default function JobsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 border-t border-gray-800 pt-4 mt-auto">
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-800 pt-4 mt-auto">
                 <div>
                   <div className="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-1">Budget</div>
                   <div className="font-mono text-[#d4af37] font-bold text-xs">{job.amount}</div>
                 </div>
-                <div>
-                  <div className="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-1">Provider</div>
-                  <div className="text-gray-300 font-mono text-xs">{job.provider}</div>
-                </div>
-                <div>
+                <div className="text-right">
                   <div className="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-1">Due Date</div>
                   <div className="text-gray-300 font-mono text-xs">{job.date}</div>
                 </div>

@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle } from 'lucide-react'
+import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle, Building2 } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { createClient } from '@/lib/supabase/client'
 
@@ -376,7 +376,22 @@ export default function JobDetailPage() {
               {jobStatus}
             </span>
           </div>
-          <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
+          <div className="flex items-center gap-3 mt-1">
+            <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
+              {job.provider && job.provider.includes('0x') ? (
+                <Building2 className="w-4 h-4 text-gray-500" />
+              ) : (
+                <span className="text-[#d4af37] font-bold font-space-grotesk">{job.provider ? job.provider.charAt(0).toUpperCase() : 'N'}</span>
+              )}
+            </div>
+            <p className="text-gray-400 text-xs uppercase tracking-widest flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+              <span className="text-gray-200 font-bold">{job.provider && job.provider.length > 15 ? `${job.provider.substring(0, 6)}...${job.provider.substring(job.provider.length - 4)}` : (job.provider || 'NEXUS CLIENT')}</span> 
+              <span className="hidden md:inline text-gray-700">•</span>
+              <span>JOB_ID: {job.id}</span>
+              <span className="hidden md:inline text-gray-700">|</span>
+              <span>ERC-8183 ESCROW CONTRACT</span>
+            </p>
+          </div>
         </div>
         
         <div className="flex gap-4">
