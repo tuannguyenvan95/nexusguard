@@ -26,6 +26,8 @@ export default function JobDetailPage() {
   const [socialHandle, setSocialHandle] = useState('')
   const [payoutTxHash, setPayoutTxHash] = useState('')
 
+  const [currentDelIndex, setCurrentDelIndex] = useState(0)
+
   // Edit/Delete state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -528,53 +530,80 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {(job.deliverables || []).map((del: any, idx: number) => (
-            <motion.div 
-              key={idx}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-black/40 border border-[#d4af37]/30 rounded-sm p-8 relative mb-6"
-            >
-              {/* Corner Accents */}
-              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#d4af37]" />
-              <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#d4af37]" />
-              <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#d4af37]" />
-              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[#d4af37]" />
+          {job.deliverables && job.deliverables.length > 0 && (() => {
+            const del = job.deliverables[currentDelIndex];
+            if (!del) return null;
+            return (
+              <motion.div 
+                key={currentDelIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-black/40 border border-[#d4af37]/30 rounded-sm p-8 relative mb-6"
+              >
+                {/* Corner Accents */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#d4af37]" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#d4af37]" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#d4af37]" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[#d4af37]" />
 
-              <h3 className="text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-4">SUBMITTED DELIVERABLE</h3>
-              <div className="bg-black/50 border border-gray-800 rounded-sm p-4 mb-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <Wallet className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-400 text-xs">Submitter:</span>
-                  <span className="text-gray-200 text-sm font-mono truncate">{del.submitterWallet}</span>
+                <div className="flex items-center justify-between mb-4 border-b border-gray-800 pb-2">
+                  <h3 className="text-xs font-bold text-[#d4af37] uppercase tracking-widest">
+                    SUBMITTED DELIVERABLE {job.deliverables.length > 1 && <span className="text-gray-500 lowercase ml-2">({currentDelIndex + 1}/{job.deliverables.length})</span>}
+                  </h3>
+                  {job.deliverables.length > 1 && (
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setCurrentDelIndex(Math.max(0, currentDelIndex - 1))}
+                        disabled={currentDelIndex === 0}
+                        className="px-2 py-1 hover:bg-[#d4af37]/20 rounded border border-[#d4af37]/30 text-[#d4af37] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-xs font-mono"
+                      >
+                        &larr; PREV
+                      </button>
+                      <button 
+                        onClick={() => setCurrentDelIndex(Math.min(job.deliverables.length - 1, currentDelIndex + 1))}
+                        disabled={currentDelIndex === job.deliverables.length - 1}
+                        className="px-2 py-1 hover:bg-[#d4af37]/20 rounded border border-[#d4af37]/30 text-[#d4af37] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-xs font-mono"
+                      >
+                        NEXT &rarr;
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {del.socialHandle && (
+
+                <div className="bg-black/50 border border-gray-800 rounded-sm p-4 mb-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <AtSign className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-400 text-xs">Contact:</span>
-                    <span className="text-[#d4af37] text-sm truncate">{del.socialHandle}</span>
+                    <Wallet className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-400 text-xs">Submitter:</span>
+                    <span className="text-gray-200 text-sm font-mono truncate">{del.submitterWallet}</span>
+                  </div>
+                  {del.socialHandle && (
+                    <div className="flex items-center gap-3">
+                      <AtSign className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-400 text-xs">Contact:</span>
+                      <span className="text-[#d4af37] text-sm truncate">{del.socialHandle}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <Code className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-400 text-xs">GitHub PR:</span>
+                    <a href={del.githubUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.githubUrl}</a>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <LinkIcon className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-400 text-xs">Preview:</span>
+                    <a href={del.previewUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.previewUrl}</a>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs">Provider notes: "Completed all requirements. Code is ready for AI Validation."</p>
+
+                {job.ai_reports && job.ai_reports[del.submitterWallet] && (
+                  <div className="mt-4 pt-4 border-t border-gray-800 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
+                    {job.ai_reports[del.submitterWallet]}
                   </div>
                 )}
-                <div className="flex items-center gap-3">
-                  <Code className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-400 text-xs">GitHub PR:</span>
-                  <a href={del.githubUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.githubUrl}</a>
-                </div>
-                <div className="flex items-center gap-3">
-                  <LinkIcon className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-400 text-xs">Preview:</span>
-                  <a href={del.previewUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.previewUrl}</a>
-                </div>
-              </div>
-              <p className="text-gray-400 text-xs">Provider notes: "Completed all requirements. Code is ready for AI Validation."</p>
-
-              {job.ai_reports && job.ai_reports[del.submitterWallet] && (
-                <div className="mt-4 pt-4 border-t border-gray-800 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
-                  {job.ai_reports[del.submitterWallet]}
-                </div>
-              )}
-            </motion.div>
-          ))}
+              </motion.div>
+            )
+          })()}
 
           {jobStatus === 'Completed' && (
             <motion.div 
