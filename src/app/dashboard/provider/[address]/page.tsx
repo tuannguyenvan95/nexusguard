@@ -75,33 +75,23 @@ export default function ProviderProfilePage({ params }: { params: { address: str
       const allJobs = [...(data || []), ...mockJobs]
       
       let matchedJobs: any[] = []
+      let finalName = providerAddress
+      let finalAvatar = ''
       
       allJobs.forEach(job => {
-        let jAddress = job.provider || ''
-        try {
-          if (jAddress.startsWith('{')) jAddress = JSON.parse(jAddress).address
-        } catch (e) {}
-
-        const addrToMatch = providerAddress.toLowerCase()
-        if (jAddress.toLowerCase() === addrToMatch || 
-            (addrToMatch.length > 5 && jAddress.toLowerCase().includes(addrToMatch))) {
+        const info = getProviderInfo(job.provider)
+        if (info.name.toLowerCase() === providerAddress.toLowerCase()) {
           matchedJobs.push(job)
+          finalName = info.name
+          finalAvatar = info.avatar || ''
         }
       })
-      
-      const info = getProviderInfo(providerAddress)
-      let pName = info.name
-      let pAvatar = info.avatar || ''
-      
-      // If still unknown and we have jobs, maybe the jobs have json provider
-      if (pName === 'UNKNOWN' && matchedJobs.length > 0) {
-         try {
-           if (matchedJobs[0].provider.startsWith('{')) {
-              const pData = JSON.parse(matchedJobs[0].provider)
-              pName = pData.name || 'UNKNOWN'
-              pAvatar = pData.avatar || ''
-           }
-         } catch (e) {}
+
+      // If no jobs were found but we have a known provider name from the URL, try to resolve its info directly if it's one of the mock ones.
+      if (matchedJobs.length === 0) {
+        if (providerAddress.toLowerCase() === 'acme network') finalAvatar = 'https://i.pravatar.cc/150?u=acme'
+        if (providerAddress.toLowerCase() === 'nexus labs') finalAvatar = 'https://i.pravatar.cc/150?u=nexus'
+        if (providerAddress.toLowerCase() === 'cyber security llc') finalAvatar = 'https://i.pravatar.cc/150?u=cyber'
       }
 
       setJobs(matchedJobs)
@@ -115,8 +105,8 @@ export default function ProviderProfilePage({ params }: { params: { address: str
       })
       
       setProviderInfo({
-        name: pName.length > 15 && !pName.includes(' ') ? `${pName.substring(0, 6)}...${pName.substring(pName.length - 4)}` : pName,
-        avatar: pAvatar,
+        name: finalName,
+        avatar: finalAvatar,
         totalSpent,
         jobsCreated: matchedJobs.length,
         successRate: matchedJobs.length > 0 ? 100 : 0
