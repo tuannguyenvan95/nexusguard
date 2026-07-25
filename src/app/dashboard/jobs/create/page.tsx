@@ -103,7 +103,6 @@ export default function CreateJobPage() {
         maxwinners: formData.maxWinners
       }
 
-      const supabase = createClient()
       const { error: dbError } = await supabase.from('nexus_jobs').insert([newJob])
 
       if (dbError) {
