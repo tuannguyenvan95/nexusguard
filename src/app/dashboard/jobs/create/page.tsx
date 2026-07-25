@@ -297,7 +297,7 @@ export default function CreateJobPage() {
                       })
                     }
                   }}
-                  className={`p-3 rounded-sm border ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.border + ' bg-gray-900/80' : 'border-gray-800 bg-black/40'} ${!node.req && 'cursor-pointer hover:border-gray-600'} transition-all flex items-start gap-3`}
+                  className={`p-3 rounded-sm border ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.border + ' bg-gray-900' : 'border-gray-800 bg-black'} ${!node.req && 'cursor-pointer hover:border-gray-600'} transition-all flex items-start gap-3 relative z-10`}
                 >
                   <div className={`mt-0.5 w-3 h-3 rounded-sm flex items-center justify-center border ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.border + ' bg-black' : 'border-gray-600 bg-black'}`}>
                     {formData.nodes[node.id as keyof typeof formData.nodes] && <div className={`w-1.5 h-1.5 rounded-sm ${node.bg || (node.color && node.color.replace('text-', 'bg-'))}`} />}
