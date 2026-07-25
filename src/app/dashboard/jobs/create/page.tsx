@@ -72,11 +72,20 @@ export default function CreateJobPage() {
         ],
       });
       
-      // LƯU CÔNG VIỆC VÀO LOCAL STORAGE
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      let providerName = localStorage.getItem('nexusguard_name')
+      
+      if (!providerName && user) {
+         providerName = user.user_metadata?.full_name || user.email?.split('@')[0]
+      }
+      
+      if (!providerName) providerName = 'NEXUS CLIENT'
+
       const shortWallet = from.substring(0, 6) + '...' + from.substring(from.length - 4);
       const providerData = JSON.stringify({
         address: shortWallet,
-        name: localStorage.getItem('nexusguard_name') || 'NEXUS CLIENT',
+        name: providerName,
         avatar: localStorage.getItem('nexusguard_avatar') || ''
       });
 
