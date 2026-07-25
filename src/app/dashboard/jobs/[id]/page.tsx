@@ -530,12 +530,19 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {job.deliverables && job.deliverables.length > 0 && (() => {
-            const del = job.deliverables[currentDelIndex];
+          {(() => {
+            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase()));
+            const visibleDeliverables = job.deliverables ? job.deliverables.filter((del: any) => isCreator || (connectedWallet && del.submitterWallet?.toLowerCase() === connectedWallet.toLowerCase())) : [];
+            
+            if (visibleDeliverables.length === 0) return null;
+            
+            const idx = Math.min(currentDelIndex, visibleDeliverables.length - 1);
+            const del = visibleDeliverables[idx];
             if (!del) return null;
+            
             return (
               <motion.div 
-                key={currentDelIndex}
+                key={idx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-black/40 border border-[#d4af37]/30 rounded-sm p-8 relative mb-6"
@@ -548,20 +555,20 @@ export default function JobDetailPage() {
 
                 <div className="flex items-center justify-between mb-4 border-b border-gray-800 pb-2">
                   <h3 className="text-xs font-bold text-[#d4af37] uppercase tracking-widest">
-                    SUBMITTED DELIVERABLE {job.deliverables.length > 1 && <span className="text-gray-500 lowercase ml-2">({currentDelIndex + 1}/{job.deliverables.length})</span>}
+                    SUBMITTED DELIVERABLE {visibleDeliverables.length > 1 && <span className="text-gray-500 lowercase ml-2">({idx + 1}/{visibleDeliverables.length})</span>}
                   </h3>
-                  {job.deliverables.length > 1 && (
+                  {visibleDeliverables.length > 1 && (
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => setCurrentDelIndex(Math.max(0, currentDelIndex - 1))}
-                        disabled={currentDelIndex === 0}
+                        onClick={() => setCurrentDelIndex(Math.max(0, idx - 1))}
+                        disabled={idx === 0}
                         className="px-2 py-1 hover:bg-[#d4af37]/20 rounded border border-[#d4af37]/30 text-[#d4af37] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-xs font-mono"
                       >
                         &larr; PREV
                       </button>
                       <button 
-                        onClick={() => setCurrentDelIndex(Math.min(job.deliverables.length - 1, currentDelIndex + 1))}
-                        disabled={currentDelIndex === job.deliverables.length - 1}
+                        onClick={() => setCurrentDelIndex(Math.min(visibleDeliverables.length - 1, idx + 1))}
+                        disabled={idx === visibleDeliverables.length - 1}
                         className="px-2 py-1 hover:bg-[#d4af37]/20 rounded border border-[#d4af37]/30 text-[#d4af37] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-xs font-mono"
                       >
                         NEXT &rarr;
