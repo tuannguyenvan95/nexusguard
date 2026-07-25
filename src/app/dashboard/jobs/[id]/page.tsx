@@ -374,7 +374,6 @@ export default function JobDetailPage() {
               {jobStatus}
             </span>
           </div>
-          </div>
           <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
         </div>
         
