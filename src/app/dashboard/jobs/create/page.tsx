@@ -91,16 +91,24 @@ export default function CreateJobPage() {
         txValue = '0x' + txValue;
       }
       
-      // Simulate a real Smart Contract call (requires gas)
-      // We send the computed value and dummy data so MetaMask recognizes it as a "Contract Interaction"
+      const jobId = `job_${Math.floor(Math.random() * 90000 + 10000)}`;
+
+      // Encode real Smart Contract call data
+      const escrowAbi = ["function createJob(string calldata jobId) external payable"];
+      const iface = new ethers.Interface(escrowAbi);
+      const dataPayload = iface.encodeFunctionData("createJob", [jobId]);
+      
+      const contractAddress = '0xECF383892b85CA8e8977f175137567E5bDa02FF0';
+
+      // Send the transaction to the real contract
       const txHash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [
           {
             from: from,
-            to: '0x0000000000000000000000000000000000008183', // Dummy ERC-8183 Escrow Contract
+            to: contractAddress,
             value: txValue,
-            data: '0x0f2c4134', // Dummy function selector for createJob()
+            data: dataPayload,
           },
         ],
       });
@@ -123,7 +131,7 @@ export default function CreateJobPage() {
       });
 
       const newJob = {
-        id: `job_${Math.floor(Math.random() * 900 + 100)}`,
+        id: jobId,
         title: formData.title,
         amount: `${formData.budget} ${formData.currency}`,
         status: 'Funded',
