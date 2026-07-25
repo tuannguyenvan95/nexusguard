@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ShieldCheck, Cpu, Code2, Users, Briefcase, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { getAgentColorStyle, getAgentGlow } from '@/components/dashboard/agent-status'
+
 
 export default function ProviderProfilePage({ params }: { params: { address: string } }) {
   const router = useRouter()
