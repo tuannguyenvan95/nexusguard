@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [createdJobs, setCreatedJobs] = useState<any[]>([])
   const [appliedJobs, setAppliedJobs] = useState<any[]>([])
   const [userName, setUserName] = useState<string>('Loading...')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     // Lấy địa chỉ ví từ localStorage hoặc ethereum window
@@ -69,6 +70,7 @@ export default function ProfilePage() {
       }
     }
 
+    setAvatarUrl(localStorage.getItem('nexusguard_avatar'))
     fetchWallet()
     fetchUser()
   }, [])
@@ -149,10 +151,38 @@ export default function ProfilePage() {
             <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[#d4af37]" />
             
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-sm border-2 border-[#d4af37] bg-gray-900 flex items-center justify-center p-1 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[#d4af37]/20 flex items-center justify-center">
-                  <Wallet className="w-8 h-8 text-[#d4af37]" />
+              <div 
+                className="w-16 h-16 rounded-sm border-2 border-[#d4af37] bg-gray-900 flex items-center justify-center p-0.5 relative overflow-hidden group cursor-pointer"
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-[#d4af37]/20 flex items-center justify-center">
+                    <Wallet className="w-8 h-8 text-[#d4af37]" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[9px] text-white font-mono uppercase tracking-widest text-center px-1">Change Logo</span>
                 </div>
+                <input 
+                  id="avatar-upload"
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const base64 = reader.result as string;
+                        setAvatarUrl(base64);
+                        localStorage.setItem('nexusguard_avatar', base64);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
               </div>
               <div>
                 <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{userName}</h2>
