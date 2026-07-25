@@ -5,6 +5,7 @@ import { ethers } from 'ethers'
 import { Loader2, RefreshCw, Terminal, Droplet, Activity } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 export default function TreasuryPage() {
   const [balance, setBalance] = useState<string>('Loading...')
@@ -37,9 +38,13 @@ export default function TreasuryPage() {
       })
     }, 5000)
 
-    // Load created jobs
-    const savedJobs = JSON.parse(localStorage.getItem('nexusguard_jobs') || '[]')
-    setCreatedJobs(savedJobs)
+    // Load created jobs from Supabase
+    const fetchJobs = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
+      if (data) setCreatedJobs(data)
+    }
+    fetchJobs()
 
     return () => clearInterval(interval)
   }, [])
