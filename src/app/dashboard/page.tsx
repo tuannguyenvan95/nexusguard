@@ -320,13 +320,6 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
-                    <option value="JOB_#1042">JOB_#1042 - Code Audit</option>
-                    <option value="JOB_#1043">JOB_#1043 - Social Media Growth</option>
-                    <option value="GENERAL_FUND">General Escrow Pool</option>
-                  </select>
-                </div>
-
-                {/* Token & Amount */}
 
     </motion.div>
   )
