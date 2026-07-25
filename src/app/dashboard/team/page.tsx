@@ -1,6 +1,6 @@
 'use client'
 
-import { Shield, BrainCircuit, Activity, Clock, Terminal } from 'lucide-react'
+import { Shield, BrainCircuit, Activity, Clock, Terminal, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
 
@@ -10,6 +10,7 @@ export default function TeamPage() {
   const [isInviting, setIsInviting] = useState(false)
 
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
+  const [selectedMember, setSelectedMember] = useState<any>(null)
 
   const [mockMembers, setMockMembers] = useState([
     { id: 1, name: 'Alex Rivera', email: 'alex@acme.network', role: 'Admin', score: 98, avatar: 'A', status: 'ACTIVE', wallet: '0x71C...3B9E', agent: 'GUARDIAN NODE', earned: '12,500 USDC' },
@@ -250,7 +251,11 @@ export default function TeamPage() {
       {/* Members Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {mockMembers.map((member) => (
-          <div key={member.id} className="bg-gray-900/40 border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:shadow-[0_0_20px_rgba(212,175,55,0.05)] transition-all relative group flex flex-col h-full">
+          <div 
+            key={member.id} 
+            onClick={() => setSelectedMember(member)}
+            className="bg-gray-900/40 border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:shadow-[0_0_20px_rgba(212,175,55,0.05)] cursor-pointer transition-all relative group flex flex-col h-full"
+          >
             {/* Corner accents */}
             <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-gray-700 group-hover:border-[#d4af37] transition-colors" />
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-gray-700 group-hover:border-[#d4af37] transition-colors" />
@@ -307,6 +312,70 @@ export default function TeamPage() {
           </div>
         ))}
       </div>
+
+      {/* Member Details Modal */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-black/90 border border-gray-700 rounded-sm p-6 w-full max-w-lg font-mono relative overflow-y-auto max-h-[90vh]">
+            <button 
+              onClick={() => setSelectedMember(null)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-800">
+              <div className="w-16 h-16 border border-[#d4af37] bg-[#d4af37]/10 flex items-center justify-center text-2xl font-space-grotesk font-bold text-[#d4af37]">
+                {selectedMember.avatar}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-200 uppercase tracking-tight">{selectedMember.name}</h2>
+                <p className="text-gray-400 text-xs mt-1">{selectedMember.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-900/50 border border-gray-800 p-3 rounded-sm">
+                  <span className="text-[10px] text-gray-500 block uppercase mb-1">Status</span>
+                  <span className={`text-xs font-bold ${selectedMember.status === 'ACTIVE' ? 'text-emerald-400' : 'text-yellow-400'}`}>{selectedMember.status}</span>
+                </div>
+                <div className="bg-gray-900/50 border border-gray-800 p-3 rounded-sm">
+                  <span className="text-[10px] text-gray-500 block uppercase mb-1">Trust Score</span>
+                  <span className="text-xs font-bold text-[#d4af37]">{selectedMember.score}/100</span>
+                </div>
+              </div>
+
+              <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-sm">
+                <span className="text-[10px] text-gray-500 block uppercase mb-2">Connected Wallet</span>
+                <div className="text-gray-300 text-xs truncate font-bold">{selectedMember.wallet}</div>
+              </div>
+
+              <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-sm">
+                <span className="text-[10px] text-gray-500 block uppercase mb-2">Total Earned</span>
+                <div className="text-emerald-400 text-sm font-bold">{selectedMember.earned}</div>
+              </div>
+
+              <div className="bg-black/50 border border-gray-800 p-4 rounded-sm">
+                <span className="text-[10px] text-gray-500 block uppercase mb-2">Assigned Agent Protocol</span>
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="w-4 h-4 text-purple-400" />
+                  <span className="text-gray-300 text-xs font-bold uppercase tracking-widest">{selectedMember.agent}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors">
+                REVOKE ACCESS
+              </button>
+              <button className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors">
+                EDIT ROLE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
