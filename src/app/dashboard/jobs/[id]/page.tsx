@@ -376,8 +376,32 @@ export default function JobDetailPage() {
           </div>
           <p className="text-gray-400 text-xs uppercase tracking-widest">JOB_ID: {job.id} | ERC-8183 ESCROW CONTRACT</p>
         </div>
-        
         <div className="flex gap-4">
+          {jobStatus === 'In Progress' && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="border border-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+              SUBMIT DELIVERABLE
+            </button>
+          )}
+          {(jobStatus === 'Open' || jobStatus === 'Funded') && (
+            <button 
+              onClick={handleApplyJob}
+              disabled={isApplying}
+              className="border border-blue-400 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
+            >
+              {isApplying ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> APPLYING...</>
+              ) : (
+                <>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                  APPLY FOR JOB
+                </>
+              )}
+            </button>
+          )}
           {!isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase())) && (
             <>
               <button 
