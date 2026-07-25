@@ -386,9 +386,20 @@ export default function JobDetailPage() {
 
   const getProviderInfo = (providerStr: string) => {
     if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
+    
+    // Check if it's a JSON string
+    try {
+      if (providerStr.startsWith('{')) {
+        const data = JSON.parse(providerStr);
+        return { name: data.name || data.address, avatar: data.avatar || null };
+      }
+    } catch (e) {
+      // Ignore and fallback
+    }
+
     const pLow = providerStr.toLowerCase();
     
-    // Check if it's the current user
+    // Check if it's the current user (fallback for old jobs)
     if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
       return { name: currentName, avatar: currentAvatar };
     }
@@ -420,7 +431,7 @@ export default function JobDetailPage() {
               {providerInfo.avatar ? (
                 <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name.charAt(0).toUpperCase()}</span>
+                <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name ? providerInfo.name.charAt(0).toUpperCase() : 'N'}</span>
               )}
             </div>
             <p className="text-gray-400 text-xs uppercase tracking-widest flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
@@ -435,10 +446,18 @@ export default function JobDetailPage() {
         
         <div className="flex gap-4">
           {(() => {
+            let providerAddress = job.provider;
+            try {
+              if (job.provider && job.provider.startsWith('{')) {
+                const data = JSON.parse(job.provider);
+                providerAddress = data.address;
+              }
+            } catch (e) {}
+
             const hasApplied = job.applicant && Array.isArray(job.applicant) && job.applicant.some((a: string) => a.toLowerCase() === connectedWallet?.toLowerCase());
             const hasSubmitted = job.deliverables && Array.isArray(job.deliverables) && job.deliverables.some((d: any) => d.submitterWallet?.toLowerCase() === connectedWallet?.toLowerCase());
             const isCompleted = jobStatus === 'Completed';
-            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase()));
+            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress?.toLowerCase()));
             
             if (isCreator) return null;
             
@@ -472,24 +491,38 @@ export default function JobDetailPage() {
               </>
             );
           })()}
-          
-          {!isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase())) && (
-            <>
-              <button 
-                onClick={() => setIsEditModalOpen(true)}
-                className="border border-blue-400/50 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all"
-              >
-                [ EDIT CONTRACT ]
-              </button>
-              <button 
-                onClick={handleDeleteJob}
-                disabled={isDeleting}
-                className="border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all disabled:opacity-50"
-              >
-                {isDeleting ? '[ DELETING... ]' : '[ DELETE CONTRACT ]'}
-              </button>
-            </>
-          )}
+          {(() => {
+            let providerAddress = job.provider;
+            try {
+              if (job.provider && job.provider.startsWith('{')) {
+                const data = JSON.parse(job.provider);
+                providerAddress = data.address;
+              }
+            } catch (e) {}
+            
+            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress?.toLowerCase()));
+            
+            if (!isCreator) return null;
+            
+            return (
+              <>
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="border border-blue-400/50 bg-blue-400/10 hover:bg-blue-400/20 text-blue-400 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all"
+                >
+                  [ EDIT CONTRACT ]
+                </button>
+                <button 
+                  onClick={handleDeleteJob}
+                  disabled={isDeleting}
+                  className="border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                >
+                  {isDeleting ? '[ DELETING... ]' : '[ DELETE CONTRACT ]'}
+                </button>
+              </>
+            );
+          })()}
+
           <button 
             onClick={() => window.history.back()}
             className="border border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 px-5 py-2.5 rounded-sm font-mono text-xs uppercase tracking-widest transition-all"

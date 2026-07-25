@@ -80,9 +80,20 @@ export default function JobsPage() {
 
   const getProviderInfo = (providerStr: string) => {
     if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
+    
+    // Check if it's a JSON string
+    try {
+      if (providerStr.startsWith('{')) {
+        const data = JSON.parse(providerStr);
+        return { name: data.name || data.address, avatar: data.avatar || null };
+      }
+    } catch (e) {
+      // Ignore and fallback
+    }
+
     const pLow = providerStr.toLowerCase();
     
-    // Check if it's the current user
+    // Check if it's the current user (fallback for old jobs)
     if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
       return { name: currentName, avatar: currentAvatar };
     }
@@ -179,7 +190,7 @@ export default function JobsPage() {
                         {providerInfo.avatar ? (
                           <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name.charAt(0).toUpperCase()}</span>
+                          <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name ? providerInfo.name.charAt(0).toUpperCase() : 'N'}</span>
                         )}
                       </div>
                       {/* Provider Name and Job ID */}

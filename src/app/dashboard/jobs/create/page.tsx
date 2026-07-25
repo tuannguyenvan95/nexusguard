@@ -73,12 +73,20 @@ export default function CreateJobPage() {
       });
       
       // LƯU CÔNG VIỆC VÀO LOCAL STORAGE
+      const shortWallet = from.substring(0, 6) + '...' + from.substring(from.length - 4);
+      const providerData = JSON.stringify({
+        address: shortWallet,
+        name: localStorage.getItem('nexusguard_name') || 'NEXUS CLIENT',
+        avatar: localStorage.getItem('nexusguard_avatar') || ''
+      });
+
       const newJob = {
         id: `job_${Math.floor(Math.random() * 900 + 100)}`,
         title: formData.title,
         amount: `${formData.budget} ${formData.currency}`,
+        risk: 'LOW',
         status: 'Funded',
-        provider: from.substring(0, 6) + '...' + from.substring(from.length - 4),
+        provider: providerData,
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         agent: formData.validatingAgent,
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
