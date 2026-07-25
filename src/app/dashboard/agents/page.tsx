@@ -100,6 +100,7 @@ export default function AgentsPage() {
       desc: newAgentForm.role,
       req: false,
       color: 'text-emerald-400',
+      bg: 'bg-emerald-400',
       border: 'border-emerald-500/30'
     });
     localStorage.setItem('nexusguard_custom_agents', JSON.stringify(customAgents));
