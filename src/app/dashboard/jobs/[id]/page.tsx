@@ -585,6 +585,32 @@ export default function JobDetailPage() {
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">SUBMISSIONS</div>
                 <div className="text-sm text-gray-300">{Array.isArray(job.applicant) ? job.applicant.length : 0} / {job.maxWinners}</div>
               </div>
+              <div>
+                <div className="text-[10px] text-emerald-500/70 mb-1 uppercase tracking-widest">SUCCESSFUL VALIDATIONS</div>
+                <div className="text-sm font-bold text-emerald-400">
+                  {job.payoutTxs ? job.payoutTxs.length : 0} / {job.maxWinners}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-emerald-500/70 mb-1 uppercase tracking-widest">AMOUNT PAID OUT</div>
+                <div className="text-sm text-emerald-400 font-bold">
+                  {(() => {
+                     const currency = job.amount ? job.amount.replace(/[\d.,]/g, '').trim() : 'USDC';
+                     if (!job.payoutTxs || job.payoutTxs.length === 0) return `0 ${currency}`;
+                     let numericAmount = 0;
+                     if (job.amount) {
+                       const parsed = parseFloat(job.amount.replace(/,/g, '').replace(/[^\d.]/g, ''));
+                       if (!isNaN(parsed)) numericAmount = parsed;
+                     }
+                     if (job.payoutType === 'pool_funding') {
+                        const winners = parseInt(job.maxWinners) || 1;
+                        return `${+(numericAmount / winners * job.payoutTxs.length).toFixed(4)} ${currency}`;
+                     } else {
+                        return `${numericAmount} ${currency}`; 
+                     }
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
 
