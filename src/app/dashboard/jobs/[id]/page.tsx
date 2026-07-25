@@ -384,6 +384,9 @@ export default function JobDetailPage() {
             const hasApplied = job.applicant && Array.isArray(job.applicant) && job.applicant.some((a: string) => a.toLowerCase() === connectedWallet?.toLowerCase());
             const hasSubmitted = job.deliverables && Array.isArray(job.deliverables) && job.deliverables.some((d: any) => d.submitterWallet?.toLowerCase() === connectedWallet?.toLowerCase());
             const isCompleted = jobStatus === 'Completed';
+            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase()));
+            
+            if (isCreator) return null;
             
             return (
               <>
