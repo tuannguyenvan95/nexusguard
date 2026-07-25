@@ -15,10 +15,10 @@ export default function TeamPage() {
   const [editMemberRole, setEditMemberRole] = useState('')
 
   const [mockMembers, setMockMembers] = useState<any[]>([
-    { id: 1, name: 'Alex Rivera', email: 'alex@acme.network', role: 'Admin', score: 98, avatar: 'A', status: 'ACTIVE', wallet: '0x71C...3B9E', agent: 'GUARDIAN NODE', earned: '12,500 USDC' },
-    { id: 2, name: 'Sam Chen', email: 'sam@acme.network', role: 'Developer', score: 92, avatar: 'S', status: 'SYNCING', wallet: '0x4F2...9A1B', agent: 'VALIDATION NODE', earned: '4,200 USDC' },
-    { id: 3, name: 'Taylor Swift', email: 'taylor@acme.network', role: 'Designer', score: 88, avatar: 'T', status: 'OFFLINE', wallet: '0x9E1...4C2D', agent: 'STRATEGY NODE', earned: '1,800 USDC' },
-    { id: 4, name: 'Jordan Lee', email: 'jordan@acme.network', role: 'Treasury', score: 95, avatar: 'J', status: 'ACTIVE', wallet: '0x2D4...7F5A', agent: 'COMPLIANCE NODE', earned: '8,900 USDC' },
+    { id: 1, name: 'Alex Rivera', email: 'alex@acme.network', role: 'Admin', score: 98, avatar: 'A', avatarUrl: 'https://i.pravatar.cc/150?img=11', status: 'ACTIVE', wallet: '0x71C...3B9E', agent: 'GUARDIAN NODE', earned: '12,500 USDC' },
+    { id: 2, name: 'Sam Chen', email: 'sam@acme.network', role: 'Developer', score: 92, avatar: 'S', avatarUrl: 'https://i.pravatar.cc/150?img=12', status: 'SYNCING', wallet: '0x4F2...9A1B', agent: 'VALIDATION NODE', earned: '4,200 USDC' },
+    { id: 3, name: 'Taylor Swift', email: 'taylor@acme.network', role: 'Designer', score: 88, avatar: 'T', avatarUrl: 'https://i.pravatar.cc/150?img=5', status: 'OFFLINE', wallet: '0x9E1...4C2D', agent: 'STRATEGY NODE', earned: '1,800 USDC' },
+    { id: 4, name: 'Jordan Lee', email: 'jordan@acme.network', role: 'Treasury', score: 95, avatar: 'J', avatarUrl: 'https://i.pravatar.cc/150?img=8', status: 'ACTIVE', wallet: '0x2D4...7F5A', agent: 'COMPLIANCE NODE', earned: '8,900 USDC' },
   ])
 
   const [previewLink, setPreviewLink] = useState<string | null>(null)
