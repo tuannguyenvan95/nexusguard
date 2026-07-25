@@ -28,7 +28,7 @@ export default function ProviderProfilePage({ params }: { params: { address: str
     try {
       if (providerStr.startsWith('{')) {
         const data = JSON.parse(providerStr);
-        return { name: data.name || data.address, avatar: data.avatar || null };
+        return { name: data.name || data.address || 'UNKNOWN', avatar: data.avatar || null };
       }
     } catch (e) {}
     const pLow = providerStr.toLowerCase();
@@ -80,7 +80,7 @@ export default function ProviderProfilePage({ params }: { params: { address: str
       
       allJobs.forEach(job => {
         const info = getProviderInfo(job.provider)
-        if (info.name.toLowerCase() === providerAddress.toLowerCase()) {
+        if (info.name && info.name.toLowerCase() === providerAddress.toLowerCase()) {
           matchedJobs.push(job)
           finalName = info.name
           finalAvatar = info.avatar || ''

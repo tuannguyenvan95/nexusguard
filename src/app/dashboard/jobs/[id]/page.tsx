@@ -392,7 +392,7 @@ export default function JobDetailPage() {
     try {
       if (providerStr.startsWith('{')) {
         const data = JSON.parse(providerStr);
-        return { name: data.name || data.address, avatar: data.avatar || null };
+        return { name: data.name || data.address || 'UNKNOWN', avatar: data.avatar || null };
       }
     } catch (e) {
       // Ignore and fallback
