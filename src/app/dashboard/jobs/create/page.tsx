@@ -15,10 +15,10 @@ export default function CreateJobPage() {
   
   const defaultNodes = [
     { id: 'escrow', name: 'Escrow', desc: 'Smart Contract Mgmt', req: true, color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-400/30' },
-    { id: 'validation', name: 'Validation', desc: 'Deliverable QA', req: true, color: 'text-purple-400', bg: 'bg-purple-400', border: 'border-purple-400/30' },
+    { id: 'validator', name: 'Validator', desc: 'Deliverable QA', req: true, color: 'text-purple-400', bg: 'bg-purple-400', border: 'border-purple-400/30' },
     { id: 'compliance', name: 'Compliance', desc: 'Tax & Regulatory', req: false, color: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/30' },
-    { id: 'payment', name: 'Payment', desc: 'Fund Disbursement', req: false, color: 'text-[#d4af37]', bg: 'bg-[#d4af37]', border: 'border-[#d4af37]/30' },
-    { id: 'risk', name: 'Risk', desc: 'Fraud Detection', req: false, color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-400/30' },
+    { id: 'treasury', name: 'Treasury', desc: 'Fund Disbursement', req: false, color: 'text-[#d4af37]', bg: 'bg-[#d4af37]', border: 'border-[#d4af37]/30' },
+    { id: 'guardian', name: 'Guardian', desc: 'Fraud Detection', req: false, color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-400/30' },
   ]
   const [availableNodes, setAvailableNodes] = useState<any[]>(defaultNodes)
   
@@ -44,10 +44,10 @@ export default function CreateJobPage() {
     maxWinners: '1',
     nodes: {
       escrow: true,
-      validation: true,
+      validator: true,
       compliance: false,
-      payment: false,
-      risk: false
+      treasury: false,
+      guardian: false
     }
   })
 
