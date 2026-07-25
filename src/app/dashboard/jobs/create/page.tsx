@@ -84,7 +84,6 @@ export default function CreateJobPage() {
         id: `job_${Math.floor(Math.random() * 900 + 100)}`,
         title: formData.title,
         amount: `${formData.budget} ${formData.currency}`,
-        risk: 'LOW',
         status: 'Funded',
         provider: providerData,
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
