@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
@@ -13,7 +13,27 @@ export default function CreateJobPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const [formData, setFormData] = useState({
+  const defaultNodes = [
+    { id: 'validator', name: 'Validator Node', desc: 'Code & Output Review', req: true, color: 'text-emerald-400', border: 'border-emerald-500/30' },
+    { id: 'escrow', name: 'Escrow Node', desc: 'Smart Contract Payouts', req: true, color: 'text-blue-400', border: 'border-blue-500/30' },
+    { id: 'guardian', name: 'Guardian Node', desc: 'Security & Malware Scan', req: false, color: 'text-red-400', border: 'border-red-500/30' },
+    { id: 'compliance', name: 'Compliance Node', desc: 'TOS & Plagiarism Check', req: false, color: 'text-purple-400', border: 'border-purple-500/30' },
+    { id: 'strategy', name: 'Strategy Node', desc: 'Market Price Oracle', req: false, color: 'text-yellow-400', border: 'border-yellow-500/30' },
+  ]
+  const [availableNodes, setAvailableNodes] = useState<any[]>(defaultNodes)
+  
+
+  const [formData, setFormData] = useState<{
+    title: string,
+    budget: string,
+    currency: string,
+    deadline: string,
+    description: string,
+    requirements: string,
+    payoutType: string,
+    maxWinners: string,
+    nodes: Record<string, boolean>
+  }>({
     title: '',
     budget: '',
     currency: 'USDC',
@@ -30,6 +50,13 @@ export default function CreateJobPage() {
       compliance: false
     }
   })
+
+  useEffect(() => {
+    const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
+    if (custom.length > 0) {
+      setAvailableNodes(prev => [...prev, ...custom])
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -259,13 +286,7 @@ export default function CreateJobPage() {
               <span className="text-[9px] text-[#d4af37]">Assign AI Agents</span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { id: 'validator', name: 'Validator Node', desc: 'Code & Output Review', req: true, color: 'text-emerald-400', border: 'border-emerald-500/30' },
-                { id: 'escrow', name: 'Escrow Node', desc: 'Smart Contract Payouts', req: true, color: 'text-blue-400', border: 'border-blue-500/30' },
-                { id: 'guardian', name: 'Guardian Node', desc: 'Security & Malware Scan', req: false, color: 'text-red-400', border: 'border-red-500/30' },
-                { id: 'compliance', name: 'Compliance Node', desc: 'TOS & Plagiarism Check', req: false, color: 'text-purple-400', border: 'border-purple-500/30' },
-                { id: 'strategy', name: 'Strategy Node', desc: 'Market Price Oracle', req: false, color: 'text-yellow-400', border: 'border-yellow-500/30' },
-              ].map(node => (
+              {availableNodes.map(node => (
                 <div 
                   key={node.id} 
                   onClick={() => {

@@ -26,6 +26,23 @@ export default function AgentsPage() {
     if (saved) {
       setAgentConfigs(JSON.parse(saved))
     }
+    const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
+    if (custom.length > 0) {
+      setActiveAgents(prev => {
+        const existingNames = prev.map(a => a.name)
+        const newAgents = custom
+          .filter((c: any) => !existingNames.includes(c.name))
+          .map((c: any) => ({
+            name: c.name,
+            role: c.desc,
+            status: 'Active',
+            uptime: '100%',
+            color: 'emerald',
+            icon: Terminal
+          }))
+        return [...prev, ...newAgents]
+      })
+    }
   }, [])
 
   const getDefaultConfig = (name: string) => {
@@ -75,6 +92,18 @@ export default function AgentsPage() {
       icon: Terminal
     }
     setActiveAgents([...activeAgents, newAgent])
+
+    const customAgents = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]');
+    customAgents.push({
+      id: newAgentForm.name.toLowerCase().replace(/\s+/g, '_'),
+      name: newAgentForm.name,
+      desc: newAgentForm.role,
+      req: false,
+      color: 'text-emerald-400',
+      border: 'border-emerald-500/30'
+    });
+    localStorage.setItem('nexusguard_custom_agents', JSON.stringify(customAgents));
+
     setShowDeployModal(false)
     setNewAgentForm({ name: '', role: '', endpoint: '' })
   }
