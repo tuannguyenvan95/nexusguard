@@ -271,7 +271,7 @@ export default function AgentsPage() {
 
             <div className="space-y-6 text-gray-300">
               {/* Dynamic Config Based on Agent */}
-              {selectedAgent.name === 'Validation' && (
+              {selectedAgent.name === 'Validator' && (
                 <>
                   <div>
                     <label className="block text-[10px] text-gray-500 uppercase tracking-widest mb-2">Evaluation Strictness</label>
@@ -346,7 +346,7 @@ export default function AgentsPage() {
                   </div>
                 </>
               )}
-              {selectedAgent.name === 'Payment' && (
+              {selectedAgent.name === 'Treasury' && (
                 <>
                   <div className="flex items-center gap-3 mb-4">
                     <input 
@@ -368,7 +368,7 @@ export default function AgentsPage() {
                   </div>
                 </>
               )}
-              {selectedAgent.name === 'Risk' && (
+              {selectedAgent.name === 'Guardian' && (
                 <>
                   <div>
                     <label className="block text-[10px] text-gray-500 uppercase tracking-widest mb-2">Max Tx Value before Manual Review</label>
