@@ -472,7 +472,7 @@ export default function JobDetailPage() {
                     SUBMIT DELIVERABLE
                   </button>
                 )}
-                {!hasApplied && (jobStatus === 'Open' || jobStatus === 'Funded') && (
+                {!hasApplied && (jobStatus === 'Open' || jobStatus === 'Funded' || jobStatus === 'In Progress') && (
                   <button 
                     onClick={handleApplyJob}
                     disabled={isApplying}
