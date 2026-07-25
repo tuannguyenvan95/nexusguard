@@ -11,6 +11,8 @@ export default function TeamPage() {
 
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
   const [selectedMember, setSelectedMember] = useState<any>(null)
+  const [isEditingRole, setIsEditingRole] = useState(false)
+  const [editMemberRole, setEditMemberRole] = useState('')
 
   const [mockMembers, setMockMembers] = useState([
     { id: 1, name: 'Alex Rivera', email: 'alex@acme.network', role: 'Admin', score: 98, avatar: 'A', status: 'ACTIVE', wallet: '0x71C...3B9E', agent: 'GUARDIAN NODE', earned: '12,500 USDC' },
@@ -356,6 +358,21 @@ export default function TeamPage() {
                 <div className="text-emerald-400 text-sm font-bold">{selectedMember.earned}</div>
               </div>
 
+              <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-sm">
+                <span className="text-[10px] text-gray-500 block uppercase mb-2">Member Role</span>
+                {isEditingRole ? (
+                  <div className="z-50 relative">
+                    <BlueprintDropdown 
+                      options={['Developer', 'Designer', 'Treasury', 'Admin']}
+                      value={editMemberRole}
+                      onChange={setEditMemberRole}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-gray-300 text-xs font-bold uppercase tracking-widest">{selectedMember.role}</div>
+                )}
+              </div>
+
               <div className="bg-black/50 border border-gray-800 p-4 rounded-sm">
                 <span className="text-[10px] text-gray-500 block uppercase mb-2">Assigned Agent Protocol</span>
                 <div className="flex items-center gap-2">
@@ -366,12 +383,35 @@ export default function TeamPage() {
             </div>
 
             <div className="mt-8 flex gap-3">
-              <button className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors">
+              <button 
+                onClick={() => {
+                  setMockMembers(mockMembers.filter((m: any) => m.id !== selectedMember.id));
+                  setSelectedMember(null);
+                }}
+                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors"
+              >
                 REVOKE ACCESS
               </button>
-              <button className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors">
-                EDIT ROLE
-              </button>
+              {isEditingRole ? (
+                <button 
+                  onClick={() => {
+                    const updatedMembers = mockMembers.map((m: any) => m.id === selectedMember.id ? {...m, role: editMemberRole} : m);
+                    setMockMembers(updatedMembers);
+                    setSelectedMember({...selectedMember, role: editMemberRole});
+                    setIsEditingRole(false);
+                  }}
+                  className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors"
+                >
+                  SAVE ROLE
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsEditingRole(true)}
+                  className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors"
+                >
+                  EDIT ROLE
+                </button>
+              )}
             </div>
           </div>
         </div>
