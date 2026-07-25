@@ -130,6 +130,11 @@ export default function CreateJobPage() {
         avatar: localStorage.getItem('nexusguard_avatar') || ''
       });
 
+      const activeNodes = Object.entries(formData.nodes)
+        .filter(([_, isActive]) => isActive)
+        .map(([id, _]) => id.charAt(0).toUpperCase() + id.slice(1))
+        .join(', ');
+
       const newJob = {
         id: jobId,
         title: formData.title,
@@ -137,8 +142,7 @@ export default function CreateJobPage() {
         status: 'Funded',
         provider: providerData,
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        agent: 'Swarm Consensus',
-        swarm_nodes: formData.nodes,
+        agent: activeNodes ? `Swarm: ${activeNodes}` : 'Swarm Consensus',
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
         payouttype: formData.payoutType,
