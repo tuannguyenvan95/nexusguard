@@ -104,11 +104,10 @@ export async function POST(request: Request) {
       }
     } catch (e: any) {
       console.error("Failed to execute real on-chain transaction:", e)
-      console.warn("Network congestion or RPC limit reached. Falling back to mock transaction for demo purposes.")
-      // txHash retains the mock hash from line 57
+      return NextResponse.json({ success: false, error: 'Network congestion, unfunded deployer wallet, or transaction failed.' })
     }
 
-    // Trả về báo cáo kết quả từ AI (MOCK DỮ LIỆU ĐỂ DEMO)
+    // Trả về báo cáo kết quả từ AI
     const report = `
 ### 🤖 REPORT FROM ${agent || 'AI AGENT'}
 **Task:** ${jobTitle} (ID: ${jobId})
