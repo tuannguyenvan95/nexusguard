@@ -22,7 +22,13 @@ export default function CreateJobPage() {
     requirements: 'Proof of Work Verification, AI Consensus Validation, Secure Fund Release',
     payoutType: 'winner_takes_all',
     maxWinners: '1',
-    validatingAgent: 'Claude 3.5 Sonnet (Frontend/UI)'
+    nodes: {
+      validator: true,
+      escrow: true,
+      guardian: false,
+      strategy: false,
+      compliance: false
+    }
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,7 +102,8 @@ export default function CreateJobPage() {
         status: 'Funded',
         provider: providerData,
         date: formData.deadline || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        agent: formData.validatingAgent,
+        agent: 'Swarm Consensus',
+        swarm_nodes: formData.nodes,
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
         payouttype: formData.payoutType,
@@ -246,22 +253,43 @@ export default function CreateJobPage() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest flex justify-between">
-              <span>Validating AI Agent</span>
-              <span className="text-[9px] text-[#d4af37]">Assign specialized Node</span>
+              <span>Swarm Consensus Nodes</span>
+              <span className="text-[9px] text-[#d4af37]">Assign AI Agents</span>
             </label>
-            <div className="w-full">
-              <BlueprintDropdown 
-                options={[
-                  'Claude 3.5 Sonnet (Frontend/UI)', 
-                  'GPT-4o (Backend/Logic)', 
-                  'Llama 3 70B (Smart Contract Security)',
-                  'Arc Native Oracle (Data Verification)'
-                ]}
-                value={formData.validatingAgent}
-                onChange={(val) => setFormData({...formData, validatingAgent: val})}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'validator', name: 'Validator Node', desc: 'Code & Output Review', req: true, color: 'text-emerald-400', border: 'border-emerald-500/30' },
+                { id: 'escrow', name: 'Escrow Node', desc: 'Smart Contract Payouts', req: true, color: 'text-blue-400', border: 'border-blue-500/30' },
+                { id: 'guardian', name: 'Guardian Node', desc: 'Security & Malware Scan', req: false, color: 'text-red-400', border: 'border-red-500/30' },
+                { id: 'compliance', name: 'Compliance Node', desc: 'TOS & Plagiarism Check', req: false, color: 'text-purple-400', border: 'border-purple-500/30' },
+                { id: 'strategy', name: 'Strategy Node', desc: 'Market Price Oracle', req: false, color: 'text-yellow-400', border: 'border-yellow-500/30' },
+              ].map(node => (
+                <div 
+                  key={node.id} 
+                  onClick={() => {
+                    if (!node.req) {
+                      setFormData({
+                        ...formData, 
+                        nodes: { ...formData.nodes, [node.id]: !formData.nodes[node.id as keyof typeof formData.nodes] }
+                      })
+                    }
+                  }}
+                  className={`p-3 rounded-sm border ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.border + ' bg-gray-900/80' : 'border-gray-800 bg-black/40'} ${!node.req && 'cursor-pointer hover:border-gray-600'} transition-all flex items-start gap-3`}
+                >
+                  <div className={`mt-0.5 w-3 h-3 rounded-sm flex items-center justify-center border ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.border + ' bg-black' : 'border-gray-600 bg-black'}`}>
+                    {formData.nodes[node.id as keyof typeof formData.nodes] && <div className={`w-1.5 h-1.5 rounded-sm ${node.color.replace('text-', 'bg-')}`} />}
+                  </div>
+                  <div>
+                    <div className={`text-xs font-bold font-mono uppercase tracking-widest ${formData.nodes[node.id as keyof typeof formData.nodes] ? node.color : 'text-gray-500'}`}>
+                      {node.name}
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-mono mt-1">{node.desc}</div>
+                  </div>
+                  {node.req && <div className="ml-auto text-[8px] text-gray-600 uppercase font-bold tracking-widest border border-gray-800 px-1.5 py-0.5 rounded-sm">REQ</div>}
+                </div>
+              ))}
             </div>
           </div>
 
