@@ -33,6 +33,9 @@ export default function JobDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [connectedWallet, setConnectedWallet] = useState('')
+  const [currentWallet, setCurrentWallet] = useState('')
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
+  const [currentName, setCurrentName] = useState('NEXUS CLIENT')
   
   // Edit form state
   const [editTitle, setEditTitle] = useState('')
@@ -159,15 +162,32 @@ export default function JobDetailPage() {
     }
 
     async function checkWallet() {
+      let w = '';
       if (typeof window !== 'undefined' && typeof (window as any).ethereum !== 'undefined') {
         try {
           const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
           if (accounts && accounts.length > 0) {
             setConnectedWallet(accounts[0])
+            setCurrentWallet(accounts[0].toLowerCase())
+            w = accounts[0].toLowerCase()
           }
         } catch (e) {
           console.error(e)
         }
+      }
+      
+      let localW = localStorage.getItem('nexusguard_wallet');
+      if (localW && !w) {
+         setConnectedWallet(localW);
+         setCurrentWallet(localW.toLowerCase());
+      }
+      
+      setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
+      
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
       }
     }
 
@@ -364,6 +384,25 @@ export default function JobDetailPage() {
     }
   }
 
+  const getProviderInfo = (providerStr: string) => {
+    if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
+    const pLow = providerStr.toLowerCase();
+    
+    // Check if it's the current user
+    if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
+      return { name: currentName, avatar: currentAvatar };
+    }
+    
+    // Mock other companies
+    if (pLow.includes('0x123')) return { name: 'ACME NETWORK', avatar: 'https://i.pravatar.cc/150?u=acme' };
+    if (pLow.includes('0x456')) return { name: 'NEXUS LABS', avatar: 'https://i.pravatar.cc/150?u=nexus' };
+    if (pLow.includes('0x789')) return { name: 'CYBER SECURITY LLC', avatar: 'https://i.pravatar.cc/150?u=cyber' };
+    
+    return { name: providerStr.length > 15 ? `${providerStr.substring(0, 6)}...${providerStr.substring(providerStr.length - 4)}` : providerStr, avatar: null };
+  }
+
+  const providerInfo = getProviderInfo(job.provider)
+
   return (
     <ErrorBoundary>
       <div className="space-y-8 font-mono">
@@ -378,14 +417,14 @@ export default function JobDetailPage() {
           </div>
           <div className="flex items-center gap-3 mt-1">
             <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
-              {job.provider && job.provider.includes('0x') ? (
-                <Building2 className="w-4 h-4 text-gray-500" />
+              {providerInfo.avatar ? (
+                <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[#d4af37] font-bold font-space-grotesk">{job.provider ? job.provider.charAt(0).toUpperCase() : 'N'}</span>
+                <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name.charAt(0).toUpperCase()}</span>
               )}
             </div>
             <p className="text-gray-400 text-xs uppercase tracking-widest flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-              <span className="text-gray-200 font-bold">{job.provider && job.provider.length > 15 ? `${job.provider.substring(0, 6)}...${job.provider.substring(job.provider.length - 4)}` : (job.provider || 'NEXUS CLIENT')}</span> 
+              <span className="text-gray-200 font-bold">{providerInfo.name}</span> 
               <span className="hidden md:inline text-gray-700">•</span>
               <span>JOB_ID: {job.id}</span>
               <span className="hidden md:inline text-gray-700">|</span>

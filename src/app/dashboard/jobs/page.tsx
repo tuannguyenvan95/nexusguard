@@ -9,6 +9,9 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [localJobs, setLocalJobs] = useState<any[]>([])
+  const [currentWallet, setCurrentWallet] = useState('')
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
+  const [currentName, setCurrentName] = useState('NEXUS CLIENT')
 
   useEffect(() => {
     async function fetchJobs() {
@@ -22,7 +25,28 @@ export default function JobsPage() {
         console.error(err)
       }
     }
+    
+    async function fetchUser() {
+      let address = localStorage.getItem('nexusguard_wallet')
+      if (!address && typeof window !== 'undefined' && (window as any).ethereum) {
+        try {
+          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
+          if (accounts && accounts.length > 0) address = accounts[0]
+        } catch (err) {}
+      }
+      if (address) setCurrentWallet(address.toLowerCase())
+      
+      setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
+      
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+      }
+    }
+    
     fetchJobs()
+    fetchUser()
   }, [])
   
   const mockJobs = [
@@ -52,6 +76,23 @@ export default function JobsPage() {
       case 'HIGH': return 'text-red-400'
       default: return 'text-gray-500'
     }
+  }
+
+  const getProviderInfo = (providerStr: string) => {
+    if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
+    const pLow = providerStr.toLowerCase();
+    
+    // Check if it's the current user
+    if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
+      return { name: currentName, avatar: currentAvatar };
+    }
+    
+    // Mock other companies
+    if (pLow.includes('0x123')) return { name: 'ACME NETWORK', avatar: 'https://i.pravatar.cc/150?u=acme' };
+    if (pLow.includes('0x456')) return { name: 'NEXUS LABS', avatar: 'https://i.pravatar.cc/150?u=nexus' };
+    if (pLow.includes('0x789')) return { name: 'CYBER SECURITY LLC', avatar: 'https://i.pravatar.cc/150?u=cyber' };
+    
+    return { name: providerStr.length > 15 ? `${providerStr.substring(0, 6)}...${providerStr.substring(providerStr.length - 4)}` : providerStr, avatar: null };
   }
 
   return (
@@ -113,48 +154,51 @@ export default function JobsPage() {
         {[...localJobs, ...mockJobs.filter(mj => !localJobs.some(lj => lj.id === mj.id || lj.title === mj.title))]
           .filter(j => activeTab === 'All' ? true : j.status === activeTab)
           .filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()) || j.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((job) => (
-          <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
-            <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
-              {/* Background Hash Log (Aesthetic) */}
-              <div className="absolute top-2 right-4 text-[8px] font-mono text-gray-800 select-none opacity-20 pointer-events-none tracking-widest">
-                TX: {Math.random().toString(36).substring(2, 15).toUpperCase()}
-              </div>
-
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-gray-600 group-hover:border-[#d4af37] transition-colors" />
-              <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-gray-600 group-hover:border-[#d4af37] transition-colors" />
-              <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-gray-600 group-hover:border-[#d4af37] transition-colors" />
-              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-gray-600 group-hover:border-[#d4af37] transition-colors" />
-
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    {/* Provider Logo / Avatar */}
-                    <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
-                      {job.provider && job.provider.includes('0x') ? (
-                        <Building2 className="w-4 h-4 text-gray-500" />
-                      ) : (
-                        <span className="text-[#d4af37] font-bold font-space-grotesk">{job.provider ? job.provider.charAt(0).toUpperCase() : 'N'}</span>
-                      )}
-                    </div>
-                    {/* Provider Name and Job ID */}
-                    <div className="flex flex-col">
-                      <div className="text-[11px] text-gray-300 font-bold font-mono tracking-widest uppercase">
-                        {job.provider && job.provider.length > 15 ? `${job.provider.substring(0, 6)}...${job.provider.substring(job.provider.length - 4)}` : (job.provider || 'NEXUS CLIENT')}
-                      </div>
-                      <div className="text-[9px] text-[#d4af37] font-mono tracking-widest flex items-center gap-1 mt-0.5">
-                        <TerminalSquare className="w-2.5 h-2.5" />
-                        ID: {job.id}
-                      </div>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-space-grotesk font-bold text-gray-200 group-hover:text-[#d4af37] transition-colors uppercase tracking-tight">{job.title}</h3>
+          .map((job) => {
+            const providerInfo = getProviderInfo(job.provider)
+            
+            return (
+            <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block group">
+              <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
+                {/* Background Hash Log (Aesthetic) */}
+                <div className="absolute top-2 right-4 text-[8px] font-mono text-gray-800 select-none opacity-20 pointer-events-none tracking-widest">
+                  TX: {Math.random().toString(36).substring(2, 15).toUpperCase()}
                 </div>
-                <span className={`px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-widest border rounded-sm ${getStatusColor(job.status)}`}>
-                  {job.status}
-                </span>
-              </div>
+
+                {/* Corner accents */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-gray-600 group-hover:border-[#d4af37] transition-colors" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-gray-600 group-hover:border-[#d4af37] transition-colors" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-gray-600 group-hover:border-[#d4af37] transition-colors" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-gray-600 group-hover:border-[#d4af37] transition-colors" />
+
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      {/* Provider Logo / Avatar */}
+                      <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
+                        {providerInfo.avatar ? (
+                          <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      {/* Provider Name and Job ID */}
+                      <div className="flex flex-col">
+                        <div className="text-[11px] text-gray-300 font-bold font-mono tracking-widest uppercase">
+                          {providerInfo.name}
+                        </div>
+                        <div className="text-[9px] text-[#d4af37] font-mono tracking-widest flex items-center gap-1 mt-0.5">
+                          <TerminalSquare className="w-2.5 h-2.5" />
+                          ID: {job.id}
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-space-grotesk font-bold text-gray-200 group-hover:text-[#d4af37] transition-colors uppercase tracking-tight">{job.title}</h3>
+                  </div>
+                  <span className={`px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-widest border rounded-sm ${getStatusColor(job.status)}`}>
+                    {job.status}
+                  </span>
+                </div>
               
               <div className="flex-1">
                 <div className="bg-black/30 border border-gray-800/50 rounded-sm p-3 mb-6 flex justify-between items-center group-hover:border-gray-700 transition-colors">
@@ -198,8 +242,9 @@ export default function JobsPage() {
                 </span>
               </div>
             </div>
-          </Link>
-        ))}
+            </Link>
+            )
+          })}
       </div>
     </div>
   )
