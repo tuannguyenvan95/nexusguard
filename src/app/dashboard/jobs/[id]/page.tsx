@@ -557,7 +557,16 @@ export default function JobDetailPage() {
               </div>
               <div>
                 <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">PROVIDER</div>
-                <div className="text-sm text-gray-300">{job.provider}</div>
+                <div className="text-sm text-gray-300">
+                  {(() => {
+                    try {
+                      if (job.provider && job.provider.startsWith('{')) {
+                        return JSON.parse(job.provider).address;
+                      }
+                    } catch (e) {}
+                    return job.provider;
+                  })()}
+                </div>
               </div>
               {/* Removed single applied by */}
               <div>
@@ -621,7 +630,14 @@ export default function JobDetailPage() {
           )}
 
           {(() => {
-            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === job.provider?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === job.provider?.toLowerCase()));
+            let providerAddress2 = job.provider;
+            try {
+              if (job.provider && job.provider.startsWith('{')) {
+                providerAddress2 = JSON.parse(job.provider).address;
+              }
+            } catch (e) {}
+
+            const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress2?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress2?.toLowerCase()));
             const visibleDeliverables = job.deliverables ? job.deliverables.filter((del: any) => isCreator || (connectedWallet && del.submitterWallet?.toLowerCase() === connectedWallet.toLowerCase())) : [];
             
             if (visibleDeliverables.length === 0) return null;
