@@ -164,12 +164,11 @@ export default function TeamPage() {
           </h4>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { name: 'ESCROW NODE v4.0', status: 'IDLE', util: '0%', icon: '💰' },
-              { name: 'TREASURY NODE v2.2', status: 'ACTIVE', util: '92%', icon: '🏦' },
-              { name: 'VALIDATOR NODE v1.1', status: 'IDLE', util: '0%', icon: '✅' },
-              { name: 'GUARDIAN NODE v3.0', status: 'ACTIVE', util: '45%', icon: '🛡️' },
-              { name: 'STRATEGY NODE v1.5', status: 'MAINTENANCE', util: '--', icon: '🧠' },
-              { name: 'ANALYTICS NODE v2.1', status: 'IDLE', util: '0%', icon: '📊' },
+              { name: 'ESCROW NODE', status: 'IDLE', util: '0%', icon: '💰' },
+              { name: 'TREASURY NODE', status: 'ACTIVE', util: '92%', icon: '🏦' },
+              { name: 'VALIDATOR NODE', status: 'IDLE', util: '0%', icon: '✅' },
+              { name: 'GUARDIAN NODE', status: 'ACTIVE', util: '45%', icon: '🛡️' },
+              { name: 'COMPLIANCE NODE', status: 'IDLE', util: '0%', icon: '⚖️' },
             ].map((node, i) => (
               <div key={i} className="bg-black/30 border border-gray-800/50 rounded-sm p-3 hover:border-gray-700 transition-colors">
                 <div className="flex justify-between items-start mb-1">

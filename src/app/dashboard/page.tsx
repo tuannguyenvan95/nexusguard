@@ -232,7 +232,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {['Escrow', 'Validation', 'Compliance', 'Payment', 'Risk'].map((agent) => (
+          {['Escrow', 'Validator', 'Compliance', 'Treasury', 'Guardian'].map((agent) => (
             <motion.div 
               whileHover={{ y: -2 }}
               key={agent} 

@@ -14,10 +14,10 @@ export default function AgentsPage() {
 
   const [activeAgents, setActiveAgents] = useState([
     { name: 'Escrow', role: 'Smart Contract Mgmt', status: 'Active', uptime: '99.9%', color: 'blue', icon: ShieldCheck },
-    { name: 'Validation', role: 'Deliverable QA', status: 'Active', uptime: '99.8%', color: 'purple', icon: Cpu },
+    { name: 'Validator', role: 'Deliverable QA', status: 'Active', uptime: '99.8%', color: 'purple', icon: Cpu },
     { name: 'Compliance', role: 'Tax & Regulatory', status: 'Active', uptime: '100%', color: 'emerald', icon: Scale },
-    { name: 'Payment', role: 'Fund Disbursement', status: 'Active', uptime: '99.9%', color: 'yellow', icon: CreditCard },
-    { name: 'Risk', role: 'Fraud Detection', status: 'Active', uptime: '99.9%', color: 'red', icon: ShieldAlert },
+    { name: 'Treasury', role: 'Fund Disbursement', status: 'Active', uptime: '99.9%', color: 'yellow', icon: CreditCard },
+    { name: 'Guardian', role: 'Fraud Detection', status: 'Active', uptime: '99.9%', color: 'red', icon: ShieldAlert },
   ])
 
   useEffect(() => {
@@ -47,11 +47,11 @@ export default function AgentsPage() {
 
   const getDefaultConfig = (name: string) => {
     switch(name) {
-      case 'Validation': return { strictness: 'Standard (Balanced)', model: 'GPT-4o (OpenAI)' }
+      case 'Validator': return { strictness: 'Standard (Balanced)', model: 'GPT-4o (OpenAI)' }
       case 'Escrow': return { threshold: 100, multisig: true }
       case 'Compliance': return { kyc: true, tax: 'US (W-9 / 1099-NEC)' }
-      case 'Payment': return { batch: true, gas: 50 }
-      case 'Risk': return { maxTx: 10000, blockVpn: true }
+      case 'Treasury': return { batch: true, gas: 50 }
+      case 'Guardian': return { maxTx: 10000, blockVpn: true }
       default: return {}
     }
   }
@@ -72,11 +72,11 @@ export default function AgentsPage() {
 
   const getPrimaryConfigDisplay = (name: string, config: any) => {
     switch(name) {
-      case 'Validation': return `Model: ${config.model.split(' ')[0]}`
+      case 'Validator': return `Model: ${config.model.split(' ')[0]}`
       case 'Escrow': return `Limit: ${config.threshold} USDC`
       case 'Compliance': return `Tax: ${config.tax.split(' ')[0]}`
-      case 'Payment': return `Max Gas: ${config.gas} Gwei`
-      case 'Risk': return `Max Tx: $${config.maxTx}`
+      case 'Treasury': return `Max Gas: ${config.gas} Gwei`
+      case 'Guardian': return `Max Tx: $${config.maxTx}`
       default: return ''
     }
   }
@@ -110,11 +110,11 @@ export default function AgentsPage() {
   }
 
   const mockActions = [
-    { time: '10:45:22', agent: 'Validation', action: 'Approved deliverable score: 95/100', target: 'Job #002', hash: '0xabc...123' },
+    { time: '10:45:22', agent: 'Validator', action: 'Approved deliverable score: 95/100', target: 'Job #002', hash: '0xabc...123' },
     { time: '10:45:24', agent: 'Escrow', action: 'Unlocked funds for payment', target: 'Job #002', hash: '0xdef...456' },
     { time: '10:45:25', agent: 'Compliance', action: 'Generated W-9 tax record', target: 'Provider 0x456', hash: '--' },
-    { time: '10:45:26', agent: 'Payment', action: 'Executed 2,500 USDC transfer', target: 'Job #002', hash: '0xghi...789' },
-    { time: '09:12:05', agent: 'Risk', action: 'Flagged suspicious IP', target: 'Login attempt', hash: '--' },
+    { time: '10:45:26', agent: 'Treasury', action: 'Executed 2,500 USDC transfer', target: 'Job #002', hash: '0xghi...789' },
+    { time: '09:12:05', agent: 'Guardian', action: 'Flagged suspicious IP', target: 'Login attempt', hash: '--' },
     { time: '08:30:00', agent: 'Escrow', action: 'Locked 5,000 USDC', target: 'Job #001', hash: '0xjkl...012' },
   ]
 
