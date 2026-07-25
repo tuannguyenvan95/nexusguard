@@ -78,7 +78,7 @@ export default function TreasuryPage() {
       const { data } = await supabase.from('nexus_jobs').select('*')
       if (data) {
         let txs: any[] = [];
-        data.forEach(job => {
+        data.forEach((job: any) => {
           let pAddress = job.provider;
           try {
             if (pAddress && pAddress.startsWith('{')) pAddress = JSON.parse(pAddress).address;
@@ -102,7 +102,7 @@ export default function TreasuryPage() {
 
           // Inbound: Received payout
           if (job.payoutTxs && Array.isArray(job.payoutTxs)) {
-            job.payoutTxs.forEach(p => {
+            job.payoutTxs.forEach((p: any) => {
               if (p.address?.toLowerCase() === address.toLowerCase()) {
                 txs.push({
                   hash: p.txHash || `PAYOUT_${job.id}`,
