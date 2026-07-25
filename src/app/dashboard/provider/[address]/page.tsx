@@ -15,49 +15,101 @@ export default function ProviderProfilePage({ params }: { params: { address: str
   const [isLoading, setIsLoading] = useState(true)
   const [providerInfo, setProviderInfo] = useState({ name: 'UNKNOWN', avatar: '', totalSpent: 0, jobsCreated: 0, successRate: 100 })
 
+  const [currentWallet, setCurrentWallet] = useState('')
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
+  const [currentName, setCurrentName] = useState('UNKNOWN')
+
   useEffect(() => {
     fetchProviderData()
   }, [providerAddress])
 
+  const getProviderInfo = (providerStr: string) => {
+    if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
+    try {
+      if (providerStr.startsWith('{')) {
+        const data = JSON.parse(providerStr);
+        return { name: data.name || data.address, avatar: data.avatar || null };
+      }
+    } catch (e) {}
+    const pLow = providerStr.toLowerCase();
+    if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
+      return { name: currentName, avatar: currentAvatar };
+    }
+    if (pLow.includes('0x123')) return { name: 'ACME NETWORK', avatar: 'https://i.pravatar.cc/150?u=acme' };
+    if (pLow.includes('0x456')) return { name: 'NEXUS LABS', avatar: 'https://i.pravatar.cc/150?u=nexus' };
+    if (pLow.includes('0x789')) return { name: 'CYBER SECURITY LLC', avatar: 'https://i.pravatar.cc/150?u=cyber' };
+    return { name: providerStr.length > 15 ? `${providerStr.substring(0, 6)}...${providerStr.substring(providerStr.length - 4)}` : providerStr, avatar: null };
+  }
+
   const fetchProviderData = async () => {
     setIsLoading(true)
     try {
+      let address = localStorage.getItem('nexusguard_wallet')
+      if (!address && typeof window !== 'undefined' && (window as any).ethereum) {
+        try {
+          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
+          if (accounts && accounts.length > 0) address = accounts[0]
+        } catch (err) {}
+      }
+      if (address) setCurrentWallet(address.toLowerCase())
+      setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
+      
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+      }
+
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
+
       
       if (error) throw error
       
-      let matchedJobs: any[] = []
-      let pName = 'UNKNOWN'
-      let pAvatar = ''
+      const mockJobs = [
+        { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE' },
+        { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE' },
+        { id: 'job_003', title: 'Subsquid Indexer Setup', amount: '1,200 USDC', status: 'Draft', provider: '--', date: 'Oct 26, 2026', risk: 'N/A', agent: 'PENDING...' },
+        { id: 'job_004', title: 'Security Review Phase 1', amount: '8,000 USDC', status: 'Completed', provider: '0x789...ghi', date: 'Oct 15, 2026', risk: 'LOW', agent: 'GUARDIAN NODE' },
+      ]
       
-      data.forEach(job => {
-        let jAddress = job.provider
-        let jName = job.provider
-        let jAvatar = ''
+      const allJobs = [...(data || []), ...mockJobs]
+      
+      let matchedJobs: any[] = []
+      
+      allJobs.forEach(job => {
+        let jAddress = job.provider || ''
         try {
-          if (jAddress && jAddress.startsWith('{')) {
-            const pData = JSON.parse(jAddress)
-            jAddress = pData.address
-            jName = pData.name
-            jAvatar = pData.avatar
-          }
+          if (jAddress.startsWith('{')) jAddress = JSON.parse(jAddress).address
         } catch (e) {}
 
-        if (jAddress?.toLowerCase() === providerAddress.toLowerCase() || 
-            (providerAddress.length > 5 && jAddress?.toLowerCase().includes(providerAddress.toLowerCase()))) {
+        const addrToMatch = providerAddress.toLowerCase()
+        if (jAddress.toLowerCase() === addrToMatch || 
+            (addrToMatch.length > 5 && jAddress.toLowerCase().includes(addrToMatch))) {
           matchedJobs.push(job)
-          pName = jName
-          pAvatar = jAvatar
         }
       })
+      
+      const info = getProviderInfo(providerAddress)
+      let pName = info.name
+      let pAvatar = info.avatar || ''
+      
+      // If still unknown and we have jobs, maybe the jobs have json provider
+      if (pName === 'UNKNOWN' && matchedJobs.length > 0) {
+         try {
+           if (matchedJobs[0].provider.startsWith('{')) {
+              const pData = JSON.parse(matchedJobs[0].provider)
+              pName = pData.name || 'UNKNOWN'
+              pAvatar = pData.avatar || ''
+           }
+         } catch (e) {}
+      }
 
       setJobs(matchedJobs)
       
       let totalSpent = 0
       matchedJobs.forEach(j => {
         if (j.status === 'Completed' || j.status === 'Funded' || j.status === 'In Progress' || j.status === 'Submitted') {
-           const amt = parseFloat(j.amount.replace(/,/g, '').replace(/[^\d.]/g, ''))
+           const amt = parseFloat((j.amount || '').replace(/,/g, '').replace(/[^\d.]/g, ''))
            if (!isNaN(amt)) totalSpent += amt
         }
       })
