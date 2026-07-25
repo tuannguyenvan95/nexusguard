@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ShieldCheck, Cpu, Code2, Users, Briefcase, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-
-export default function ProviderProfilePage({ params }: { params: { address: string } }) {
+export default function ProviderProfilePage() {
   const router = useRouter()
-  const providerAddress = decodeURIComponent(params.address)
+  const params = useParams()
+  const providerAddress = decodeURIComponent(params.address as string)
   
   const [jobs, setJobs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
