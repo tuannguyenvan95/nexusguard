@@ -351,7 +351,7 @@ export default function JobDetailPage() {
             payout_txs: JSON.stringify(updatedPayoutTxs),
             ai_reports: JSON.stringify(updatedReports)
           }).eq('id', job.id)
-        }, 1500)
+        }, 5000)
       } else {
         setValidationLogs(prev => [...prev, `> ERROR: ${data.error || 'API CALL FAILED.'}`])
         // Removed setTimeout so user can read the error
