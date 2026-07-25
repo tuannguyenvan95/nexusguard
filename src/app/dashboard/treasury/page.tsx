@@ -38,11 +38,34 @@ export default function TreasuryPage() {
       })
     }, 5000)
 
-    // Load created jobs from Supabase
+    // Load created jobs from Supabase and filter for current user
     const fetchJobs = async () => {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       const { data } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
-      if (data) setCreatedJobs(data)
+      
+      if (data) {
+        let providerName = localStorage.getItem('nexusguard_name')
+        if (!providerName && user) {
+           providerName = user.user_metadata?.full_name || user.email?.split('@')[0]
+        }
+        
+        if (providerName) {
+           // Filter jobs that belong to this user (by name)
+           const myJobs = data.filter(job => {
+             if (!job.provider) return false;
+             try {
+               const pData = JSON.parse(job.provider);
+               return pData.name === providerName;
+             } catch (e) {
+               return job.provider === providerName;
+             }
+           });
+           setCreatedJobs(myJobs)
+        } else {
+           setCreatedJobs(data)
+        }
+      }
     }
     fetchJobs()
 
