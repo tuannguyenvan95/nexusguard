@@ -27,6 +27,17 @@ export default function ProfilePage() {
   const [appliedJobs, setAppliedJobs] = useState<any[]>([])
   const [userName, setUserName] = useState<string>('Loading...')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editNameValue, setEditNameValue] = useState('')
+
+  const handleSaveName = () => {
+    if (editNameValue.trim()) {
+      setUserName(editNameValue.trim())
+      localStorage.setItem('nexusguard_name', editNameValue.trim())
+    }
+    setIsEditingName(false)
+  }
 
   useEffect(() => {
     // Lấy địa chỉ ví từ localStorage hoặc ethereum window
@@ -64,9 +75,11 @@ export default function ProfilePage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+        const storedName = localStorage.getItem('nexusguard_name')
+        setUserName(storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
       } else {
-        setUserName('Guest')
+        const storedName = localStorage.getItem('nexusguard_name')
+        setUserName(storedName || 'Guest')
       }
     }
 
@@ -184,9 +197,32 @@ export default function ProfilePage() {
                   }}
                 />
               </div>
-              <div>
-                <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{userName}</h2>
-                <p className="text-xs text-gray-500 font-mono uppercase">{formatAddress(userAddress)} • NexusGuard Citizen</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 group/edit">
+                  {isEditingName ? (
+                    <input
+                      type="text"
+                      value={editNameValue}
+                      onChange={(e) => setEditNameValue(e.target.value)}
+                      onBlur={handleSaveName}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                      autoFocus
+                      className="text-xl font-space-grotesk font-bold text-white uppercase bg-gray-800/50 border border-[#d4af37]/50 rounded-sm px-2 py-1 outline-none w-full max-w-[200px]"
+                      placeholder="Enter your name"
+                    />
+                  ) : (
+                    <>
+                      <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{userName}</h2>
+                      <button 
+                        onClick={() => { setEditNameValue(userName !== 'Loading...' && userName !== 'Guest' && userName !== 'Unknown User' ? userName : ''); setIsEditingName(true); }}
+                        className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-gray-500 hover:text-[#d4af37]"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 font-mono uppercase mt-1">{formatAddress(userAddress)} • NexusGuard Citizen</p>
               </div>
             </div>
 
