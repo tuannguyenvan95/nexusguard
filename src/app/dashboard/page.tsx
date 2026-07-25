@@ -136,20 +136,7 @@ export default function DashboardPage() {
           <span className="text-xl leading-none">+</span>
           Create New Job
         </Link>
-        <button 
-          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
-          onClick={() => setShowDepositModal(true)}
-        >
-          <span>💰</span> Deposit to Escrow
-        </button>
-        <a 
-          href={`https://testnet.arcscan.app/address/${userAddress}`}
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800 text-gray-300 px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-widest transition-colors"
-        >
-          <span>📜</span> View Contracts
-        </a>
+
       </motion.div>
 
       {/* Stats Cards Blueprint */}
@@ -333,48 +320,6 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Deposit Modal */}
-      <AnimatePresence>
-        {showDepositModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowDepositModal(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-gray-950 border border-gray-800 w-full max-w-md rounded-sm overflow-hidden shadow-2xl flex flex-col"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-                  <h3 className="font-space-grotesk font-bold text-gray-200 tracking-wider">DEPOSIT TO ESCROW</h3>
-                </div>
-                <button onClick={() => setShowDepositModal(false)} className="text-gray-500 hover:text-gray-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="p-6 space-y-5 bg-[linear-gradient(to_bottom,rgba(17,24,39,1),rgba(3,7,18,1))]">
-                
-                {/* Select Job */}
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-400 font-mono uppercase tracking-widest">Assign to Job / Task</label>
-                  <select 
-                    value={depositJob}
-                    onChange={(e) => setDepositJob(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-sm px-4 py-3 text-gray-200 font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors appearance-none"
-                  >
-                    <option value="JOB_#1041">JOB_#1041 - Market Analysis</option>
                     <option value="JOB_#1042">JOB_#1042 - Code Audit</option>
                     <option value="JOB_#1043">JOB_#1043 - Social Media Growth</option>
                     <option value="GENERAL_FUND">General Escrow Pool</option>
@@ -382,98 +327,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Token & Amount */}
-                <div className="flex gap-4">
-                  <div className="space-y-2 flex-1">
-                    <label className="text-xs text-gray-400 font-mono uppercase tracking-widest">Amount</label>
-                    <input 
-                      type="number" 
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      className="w-full bg-gray-900/50 border border-gray-700 rounded-sm px-4 py-3 text-white font-mono text-lg focus:outline-none focus:border-[#d4af37] transition-colors"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2 w-1/3">
-                    <label className="text-xs text-gray-400 font-mono uppercase tracking-widest">Token</label>
-                    <select 
-                      value={depositToken}
-                      onChange={(e) => setDepositToken(e.target.value)}
-                      className="w-full bg-gray-900/50 border border-gray-700 rounded-sm px-4 py-3 text-gray-200 font-mono text-lg focus:outline-none focus:border-[#d4af37] transition-colors appearance-none"
-                    >
-                      <option value="ARC">ARC</option>
-                      <option value="USDC">USDC</option>
-                      <option value="EURC">EURC</option>
-                    </select>
-                  </div>
-                </div>
 
-                {/* Info Note */}
-                <div className="p-3 border border-[#d4af37]/20 bg-[#d4af37]/5 rounded-sm">
-                  <p className="text-xs text-gray-400 font-mono leading-relaxed">
-                    * Funds are locked securely in the Escrow Smart Contract.
-                    Tokens will only be released to agents upon verifiable completion of <span className="text-[#d4af37]">{depositJob}</span>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="border-t border-gray-800 p-4 bg-gray-950 flex justify-end gap-3">
-                <button 
-                  onClick={() => setShowDepositModal(false)} 
-                  className="px-6 py-2.5 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 font-mono text-xs uppercase tracking-widest transition-colors rounded-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={async () => {
-                    try {
-                      const { ethereum } = window as any;
-                      if (!ethereum) {
-                        alert("Vui lòng cài đặt và kết nối ví MetaMask trước!");
-                        return;
-                      }
-                      const accounts = await ethereum.request({ method: 'eth_accounts' });
-                      if (!accounts || accounts.length === 0) {
-                        alert("Vui lòng kết nối ví ở góc trên bên phải trước khi Deposit!");
-                        return;
-                      }
-                      const from = accounts[0];
-                      
-                      // Convert amount to hex wei. E.g. 1 ARC = 1e18 wei
-                      let valueHex = '0x0';
-                      try {
-                        valueHex = '0x' + BigInt(Math.floor(parseFloat(depositAmount || '0') * 1e18)).toString(16);
-                      } catch(e) {}
-                      
-                      const txHash = await ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                          from: from,
-                          to: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7", // Mock Escrow Contract
-                          value: valueHex,
-                        }],
-                      });
-                      
-                      alert(`Deposit ${depositAmount} ${depositToken} cho ${depositJob} thành công!\nTx Hash: ${txHash}`);
-                      setShowDepositModal(false);
-                    } catch (error: any) {
-                      console.error(error);
-                      if (error.code === 4001) {
-                        alert("Bạn đã từ chối giao dịch nạp tiền.");
-                      } else {
-                        alert(`Lỗi: ${error.message}`);
-                      }
-                    }
-                  }}
-                  className="px-6 py-2.5 border border-[#d4af37] bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20 font-mono text-xs uppercase tracking-widest transition-colors rounded-sm flex items-center gap-2 shadow-[0_0_10px_rgba(212,175,55,0.1)]"
-                >
-                  <span>Confirm Deposit</span>
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   )
 }
