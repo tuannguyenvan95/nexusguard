@@ -20,6 +20,10 @@ export default function ProviderProfilePage({ params }: { params: { address: str
   const [currentName, setCurrentName] = useState('UNKNOWN')
 
   useEffect(() => {
+    if (providerAddress === 'undefined') {
+      window.location.href = '/dashboard/jobs';
+      return;
+    }
     fetchProviderData()
   }, [providerAddress])
 
