@@ -144,6 +144,19 @@ export default function ProfilePage() {
       if (user) {
         const storedName = localStorage.getItem('nexusguard_name')
         setUserName(storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+        
+        // Sync social identities from Supabase
+        if (user.identities) {
+          const currentSocials = JSON.parse(localStorage.getItem('nexusguard_socials') || '{}')
+          user.identities.forEach(id => {
+            if (id.provider === 'github') currentSocials['GitHub'] = `https://github.com/${id.identity_data?.user_name || id.identity_data?.preferred_username || ''}`
+            if (id.provider === 'google') currentSocials['Google'] = `Connected`
+            if (id.provider === 'twitter') currentSocials['Twitter'] = `https://twitter.com/${id.identity_data?.user_name || ''}`
+            if (id.provider === 'discord') currentSocials['Discord'] = `Connected`
+          })
+          setSocials(currentSocials)
+          localStorage.setItem('nexusguard_socials', JSON.stringify(currentSocials))
+        }
       } else {
         const storedName = localStorage.getItem('nexusguard_name')
         setUserName(storedName || 'Guest')
