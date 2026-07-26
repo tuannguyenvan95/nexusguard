@@ -79,10 +79,18 @@ export default function ProfilePage() {
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
       
       if (data && !error && userAddress && userAddress !== 'Not Connected') {
-        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`
-        // provider was saved as shortened string
-        const created = data.filter(job => job.provider?.toLowerCase() === shortAddress.toLowerCase())
-        // applicant was saved as full string
+        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`.toLowerCase()
+        
+        const created = data.filter(job => {
+          if (!job.provider) return false
+          try {
+            const p = JSON.parse(job.provider)
+            return p.address?.toLowerCase() === shortAddress || p.toLowerCase() === shortAddress
+          } catch (e) {
+            return job.provider.toLowerCase() === shortAddress
+          }
+        })
+        
         const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
         
         setCreatedJobs(created)
@@ -121,8 +129,20 @@ export default function ProfilePage() {
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
       
       if (data && !error && userAddress && userAddress !== 'Not Connected') {
-        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`
-        const created = data.filter(job => job.provider?.toLowerCase() === shortAddress.toLowerCase())
+        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`.toLowerCase()
+        
+        const created = data.filter(job => {
+          if (!job.provider) return false
+          try {
+            // Check if it's JSON
+            const p = JSON.parse(job.provider)
+            return p.address?.toLowerCase() === shortAddress || p.toLowerCase() === shortAddress
+          } catch (e) {
+            // Fallback for plain string
+            return job.provider.toLowerCase() === shortAddress
+          }
+        })
+        
         const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
         
         setCreatedJobs(created)
