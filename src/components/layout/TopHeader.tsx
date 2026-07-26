@@ -235,7 +235,7 @@ export function TopHeader() {
                 {/* Profile Section */}
                 <div className="px-4 py-2 border-b border-gray-800/50 mb-1">
                   <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Signed in as</p>
-                  <p className="text-xs text-emerald-400 font-mono font-bold truncate">{walletAddress}</p>
+                  <p className="text-xs text-emerald-400 font-mono font-bold truncate">{formatAddress(walletAddress)}</p>
                 </div>
 
                 <div className="px-2 space-y-0.5">
@@ -255,7 +255,7 @@ export function TopHeader() {
                     onClick={() => {
                       playClick()
                       setShowUserMenu(false)
-                      // Todo: create settings modal
+                      router.push('/dashboard/settings')
                     }}
                     className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-sm transition-colors"
                   >
