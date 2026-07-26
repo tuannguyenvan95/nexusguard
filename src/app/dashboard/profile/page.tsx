@@ -48,14 +48,32 @@ export default function ProfilePage() {
     setIsEditingName(false)
   }
 
+  const [connectModalOpen, setConnectModalOpen] = useState(false)
+  const [connectingSocial, setConnectingSocial] = useState('')
+  const [socialInput, setSocialInput] = useState('')
+  const [isConnecting, setIsConnecting] = useState(false)
+
   const handleConnectSocial = (socialName: string) => {
-    const url = window.prompt(`Enter your ${socialName} profile URL:`)
-    if (url) {
-      const newSocials = { ...socials, [socialName]: url }
+    setConnectingSocial(socialName)
+    setSocialInput('')
+    setConnectModalOpen(true)
+  }
+
+  const submitSocialConnect = () => {
+    if (!socialInput.trim()) return
+    setIsConnecting(true)
+    setTimeout(() => {
+      let url = socialInput.trim()
+      // Nếu user chỉ nhập handle (không chứa http), tự động thêm domain
+      if (!url.startsWith('http')) {
+        url = `https://${connectingSocial.toLowerCase()}.com/${url.replace('@', '')}`
+      }
+      const newSocials = { ...socials, [connectingSocial]: url }
       setSocials(newSocials)
       localStorage.setItem('nexusguard_socials', JSON.stringify(newSocials))
-      // Optional: Sync to Supabase user_metadata if needed
-    }
+      setIsConnecting(false)
+      setConnectModalOpen(false)
+    }, 800)
   }
 
   useEffect(() => {
@@ -454,6 +472,49 @@ export default function ProfilePage() {
 
         </div>
       </div>
+      {/* Social Connect Modal */}
+      {connectModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0a0e1a] border border-gray-800 rounded-sm shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setConnectModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 className="text-xl font-space-grotesk font-bold text-white uppercase mb-2 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-[#d4af37]" />
+              Connect {connectingSocial}
+            </h3>
+            <p className="text-sm font-mono text-gray-400 mb-6">Enter your profile URL or @handle to link {connectingSocial} to your NexusGuard identity.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Profile URL / Handle</label>
+                <input 
+                  type="text" 
+                  value={socialInput}
+                  onChange={(e) => setSocialInput(e.target.value)}
+                  placeholder={`e.g. https://${connectingSocial.toLowerCase()}.com/username`}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-white font-mono text-sm outline-none focus:border-[#d4af37] transition-colors"
+                  onKeyDown={(e) => e.key === 'Enter' && submitSocialConnect()}
+                  autoFocus
+                />
+              </div>
+              <button 
+                onClick={submitSocialConnect}
+                disabled={isConnecting || !socialInput.trim()}
+                className="w-full bg-[#d4af37] hover:bg-[#d4af37]/90 text-black font-bold font-mono text-sm uppercase py-2.5 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isConnecting ? (
+                  <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Verifying...</>
+                ) : 'Authorize Connection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </motion.div>
   )
 }
