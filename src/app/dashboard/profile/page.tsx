@@ -67,25 +67,29 @@ export default function ProfilePage() {
     if (oauthProvider) {
       try {
         // Try linking identity first (if user is logged in)
-        const { error } = await supabase.auth.linkIdentity({
+        let result = await supabase.auth.linkIdentity({
           provider: oauthProvider,
           options: {
             redirectTo: `${window.location.origin}/dashboard/profile`
           }
         })
         
-        if (error) {
+        if (result.error) {
           // Fallback to signInWithOAuth if linkIdentity is not available/fails
-          await supabase.auth.signInWithOAuth({
+          result = await supabase.auth.signInWithOAuth({
             provider: oauthProvider,
             options: {
               redirectTo: `${window.location.origin}/dashboard/profile`
             }
           })
         }
-      } catch (e) {
+        
+        if (result.error) {
+          alert(`Lỗi Supabase: ${result.error.message}. Bạn cần bật Provider này trong Supabase Dashboard!`)
+        }
+      } catch (e: any) {
         console.error(e)
-        alert(`Failed to connect ${socialName}. Please check Supabase Provider settings.`)
+        alert(`Failed to connect ${socialName}: ${e.message}`)
       }
     } else {
       alert(`${socialName} direct OAuth is not configured yet.`)
