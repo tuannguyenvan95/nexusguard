@@ -45,6 +45,9 @@ export default function ProfilePage() {
         await supabase.auth.updateUser({ data: { full_name: newName } })
       }
     }
+    setIsEditingName(false)
+  }
+
   const [isConnecting, setIsConnecting] = useState(false)
 
   const handleConnectSocial = async (socialName: string) => {
