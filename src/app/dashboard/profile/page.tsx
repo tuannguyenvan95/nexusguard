@@ -31,12 +31,31 @@ export default function ProfilePage() {
   const [isEditingName, setIsEditingName] = useState(false)
   const [editNameValue, setEditNameValue] = useState('')
 
-  const handleSaveName = () => {
+  const [socials, setSocials] = useState<{ [key: string]: string }>({})
+
+  const handleSaveName = async () => {
     if (editNameValue.trim()) {
-      setUserName(editNameValue.trim())
-      localStorage.setItem('nexusguard_name', editNameValue.trim())
+      const newName = editNameValue.trim()
+      setUserName(newName)
+      localStorage.setItem('nexusguard_name', newName)
+      
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.auth.updateUser({ data: { full_name: newName } })
+      }
     }
     setIsEditingName(false)
+  }
+
+  const handleConnectSocial = (socialName: string) => {
+    const url = window.prompt(`Enter your ${socialName} profile URL:`)
+    if (url) {
+      const newSocials = { ...socials, [socialName]: url }
+      setSocials(newSocials)
+      localStorage.setItem('nexusguard_socials', JSON.stringify(newSocials))
+      // Optional: Sync to Supabase user_metadata if needed
+    }
   }
 
   useEffect(() => {
@@ -81,6 +100,13 @@ export default function ProfilePage() {
         const storedName = localStorage.getItem('nexusguard_name')
         setUserName(storedName || 'Guest')
       }
+    }
+
+    const savedSocials = localStorage.getItem('nexusguard_socials')
+    if (savedSocials) {
+      try {
+        setSocials(JSON.parse(savedSocials))
+      } catch (e) {}
     }
 
     setAvatarUrl(localStorage.getItem('nexusguard_avatar'))
@@ -215,7 +241,8 @@ export default function ProfilePage() {
                       <h2 className="text-xl font-space-grotesk font-bold text-white uppercase">{userName}</h2>
                       <button 
                         onClick={() => { setEditNameValue(userName !== 'Loading...' && userName !== 'Guest' && userName !== 'Unknown User' ? userName : ''); setIsEditingName(true); }}
-                        className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-gray-500 hover:text-[#d4af37]"
+                        className="text-gray-400 hover:text-[#d4af37] transition-colors p-1"
+                        title="Edit Name"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                       </button>
@@ -233,7 +260,9 @@ export default function ProfilePage() {
                 { name: 'Discord', color: '#5865F2', path: 'M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z' },
                 { name: 'Telegram', color: '#24A1DE', path: 'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.892-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z' },
                 { name: 'Google', color: '#EA4335', path: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z' }
-              ].map((social) => (
+              ].map((social) => {
+                const isConnected = !!socials[social.name]
+                return (
                 <div key={social.name} className="p-3 bg-gray-900/50 border border-gray-800 rounded-sm flex items-center justify-between group-hover:border-[#d4af37]/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <svg className="w-4 h-4" style={{ color: social.color }} fill="currentColor" viewBox="0 0 24 24">
@@ -241,11 +270,26 @@ export default function ProfilePage() {
                     </svg>
                     <span className="text-sm font-mono text-gray-300">{social.name}</span>
                   </div>
-                  <button className="text-[10px] font-mono text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 bg-gray-800/50 hover:bg-gray-700/50 px-2 py-1 rounded-sm transition-colors uppercase">
-                    Connect
-                  </button>
+                  {isConnected ? (
+                    <div className="flex items-center gap-2">
+                      <a href={socials[social.name]} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-400 hover:text-white transition-colors underline">View</a>
+                      <button onClick={() => {
+                        const newSocials = { ...socials }
+                        delete newSocials[social.name]
+                        setSocials(newSocials)
+                        localStorage.setItem('nexusguard_socials', JSON.stringify(newSocials))
+                      }} className="text-[10px] font-mono text-emerald-400 border border-emerald-400/30 bg-emerald-400/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 px-2 py-1 rounded-sm transition-colors uppercase group/btn relative">
+                        <span className="group-hover/btn:hidden flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Linked</span>
+                        <span className="hidden group-hover/btn:block">Unlink</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => handleConnectSocial(social.name)} className="text-[10px] font-mono text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 bg-gray-800/50 hover:bg-gray-700/50 px-2 py-1 rounded-sm transition-colors uppercase">
+                      Connect
+                    </button>
+                  )}
                 </div>
-              ))}
+              )})}
             </div>
           </motion.div>
 
