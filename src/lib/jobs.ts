@@ -202,6 +202,99 @@ export async function applyToJob(
   }
 }
 
+/**
+ * Shape of a Supabase/PostgREST error. Only `message` / `code` are read by
+ * this module; the real `PostgrestError` satisfies it structurally.
+ */
+export interface DbErrorLike {
+  message?: string;
+  code?: string;
+}
+
+/** Minimal structural shape of the Supabase client used by {@link insertNexusJob}. */
+export interface JobInsertClient {
+  from: (table: string) => {
+    insert: (rows: unknown[]) => PromiseLike<{ error: DbErrorLike | null }>;
+  };
+}
+
+/**
+ * True when a Supabase/PostgREST/Postgres error means a column is missing
+ * from the table schema (the PostgREST schema-cache error or the raw
+ * Postgres `42703 undefined_column` error), as opposed to a real data
+ * problem we should surface to the user. Table-level errors (e.g. "relation
+ * does not exist") are deliberately excluded — stripping columns can't help
+ * those.
+ */
+export function isMissingColumnError(error: DbErrorLike | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === '42703') return true;
+  const msg = error.message?.toLowerCase() ?? '';
+  return (
+    (msg.includes('column') && msg.includes('does not exist')) ||
+    (msg.includes('could not find the') && msg.includes(' column of '))
+  );
+}
+
+/**
+ * Extract the offending column name from a missing-column error message.
+ * Handles both the raw Postgres wording (`column nexus_jobs.deadline does
+ * not exist`) and the PostgREST schema-cache wording (`Could not find the
+ * 'deadline' column of 'nexus_jobs' ...`). Returns null when the message
+ * doesn't name a column.
+ */
+export function extractMissingColumn(error: DbErrorLike | null | undefined): string | null {
+  if (!error?.message) return null;
+  const msg = error.message;
+
+  const pg = msg.match(/column\s+([^\s]+)\s+does not exist/i);
+  if (pg) {
+    const qualified = pg[1].replace(/["']/g, '');
+    return qualified.includes('.') ? qualified.slice(qualified.lastIndexOf('.') + 1) : qualified;
+  }
+
+  const pgrst = msg.match(/could not find the '([^']+)' column/i);
+  return pgrst ? pgrst[1] : null;
+}
+
+/**
+ * Insert a job into `nexus_jobs`, degrading gracefully when the table is
+ * missing columns (hand-created tables predate later-added columns like
+ * `deadline`; see supabase/migrations/003_nexus_jobs.sql).
+ *
+ * Tries the full payload first. If the database rejects it because a column
+ * doesn't exist, the offending column is parsed out of the error message,
+ * stripped, and the insert is retried — so a missing column no longer fails
+ * the whole job save. Retries are capped to avoid pathological loops, and
+ * `fallbackUsed` reports whether any column had to be dropped.
+ */
+export async function insertNexusJob(
+  supabase: JobInsertClient,
+  job: Record<string, unknown>
+): Promise<{ error: DbErrorLike | null; fallbackUsed: boolean }> {
+  const attempt = (payload: Record<string, unknown>) =>
+    supabase.from('nexus_jobs').insert([payload]);
+
+  let payload = job;
+  let error: DbErrorLike | null = null;
+  const stripped = new Set<string>();
+
+  // One attempt per possibly-missing column, max 3 inserts total.
+  for (let i = 0; i < 3; i += 1) {
+    ({ error } = await attempt(payload));
+    if (!error || !isMissingColumnError(error)) break;
+
+    const column = extractMissingColumn(error);
+    if (!column || !(column in payload) || stripped.has(column)) break;
+
+    stripped.add(column);
+    payload = { ...payload };
+    delete payload[column];
+  }
+
+  return { error, fallbackUsed: stripped.size > 0 };
+}
+
 /** Extract a provider address from a provider field (JSON or plain string). */
 export function parseProviderAddress(provider: unknown): string | null {
   if (provider == null || typeof provider !== 'string') return null;

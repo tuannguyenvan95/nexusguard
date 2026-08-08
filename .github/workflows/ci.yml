@@ -1,10 +1,11 @@
 name: CI
 
 on:
-  pull_request:
-  # Also guard the main branch (runs again on every merge to main)
+  # Run on every push to any branch, so schema/code drift is caught early.
   push:
-    branches: [main]
+  # Also run on pull requests and allow manual runs from the Actions tab.
+  pull_request:
+  workflow_dispatch:
 
 # Cancel superseded runs for the same PR/branch to save CI minutes
 concurrency:

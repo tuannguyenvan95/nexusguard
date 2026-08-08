@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getErrorMessage } from '@/lib/utils'
 import { getEthereumProvider } from '@/lib/ethereum'
 import { useWallet } from '@/hooks/useWallet'
-import { validateMilestones, calculateMilestoneAmounts, addMilestone, removeMilestone, MAX_MILESTONES } from '@/lib/jobs'
+import { validateMilestones, calculateMilestoneAmounts, addMilestone, removeMilestone, MAX_MILESTONES, insertNexusJob } from '@/lib/jobs'
 import { ESCROW_V2_ADDRESS } from '@/lib/constants'
 
 interface AgentNode {
@@ -204,13 +204,19 @@ export default function CreateJobPage() {
         deadline: formData.deadline
       }
 
-      const { error: dbError } = await supabase.from('nexus_jobs').insert([newJob])
+      const { error: dbError, fallbackUsed } = await insertNexusJob(supabase, newJob)
 
       if (dbError) {
         console.error('Lỗi khi lưu lên Supabase:', dbError)
         alert('Có lỗi khi lưu Database: ' + dbError.message)
       } else {
-        alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}`);
+        if (fallbackUsed) {
+          console.warn('[nexus_jobs] job saved without columns missing from the table schema (e.g. deadline). Apply supabase/migrations/003_nexus_jobs.sql to add them.')
+        }
+        const fallbackNote = fallbackUsed
+          ? '\n⚠ Job đã lưu nhưng thiếu cột deadline trong bảng nexus_jobs (chạy migration 003 để thêm).'
+          : '';
+        alert(`Đã khóa quỹ thành công!\nHợp đồng Escrow được khởi tạo trên chuỗi.\nTxHash: ${txHash}${fallbackNote}`);
         router.push('/dashboard/jobs')
       }
       

@@ -1,38 +1,25 @@
 -- =============================================================================
--- 003_nexus_jobs.sql
+-- nexus_jobs schema — standalone, shareable setup script
 -- -----------------------------------------------------------------------------
--- The dashboard job flow (create / list / detail / apply / submit / validate /
--- dispute / delete) reads and writes the `nexus_jobs` table, which was created
--- by hand in the Supabase dashboard during development and never captured in a
--- migration. This file makes a fresh Supabase setup reproducible end-to-end.
+-- A single file to reproduce the `nexus_jobs` table on any Supabase project:
+-- works for a fresh setup AND for patching an existing hand-created table
+-- (like the live project, which was missing the `deadline` and `milestones`
+-- columns).
 --
--- NOTE: `nexus_jobs` intentionally differs from the `jobs` table defined in
--- 001_initial_schema.sql. The UI stores contracts keyed by a short text id
--- (e.g. `job_48162`, generated client-side) with denormalized display fields
--- (`amount`, `provider`, `date`, ...) instead of the on-chain/team model used
--- by `jobs`. Both tables coexist:
---   - `jobs`        -> agent libs + GET /api/jobs
---   - `nexus_jobs`  -> every dashboard page and the jobs API routes
+-- Usage:
+--   1. Supabase Dashboard -> SQL Editor -> paste the whole file -> Run, OR
+--   2. CLI:  psql "$DATABASE_URL" -f supabase/nexus_jobs_schema.sql
 --
--- The table was originally created by hand in the Supabase dashboard, so in
--- existing projects it may be missing columns that were added later
--- (`deadline` and `milestones` were both confirmed missing on the live
--- project). `CREATE TABLE IF NOT EXISTS` does nothing when the table already
--- exists, so the `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements below
--- patch up those hand-created tables and keep this migration re-runnable.
--- After applying, PostgREST must reload its schema cache (see the
--- `NOTIFY pgrst, 'reload schema';` at the end) or reads/writes of the new
--- columns fail with: Could not find the '<column>' column of 'nexus_jobs' in
--- the schema cache.
+-- The script is idempotent: every statement is guarded with IF NOT EXISTS
+-- (or DROP-then-CREATE for policies), so re-running it is always safe and a
+-- no-op when everything already exists.
 --
--- Column notes:
---   - `applicant` is TEXT holding a JSON string[] (e.g. '["0x123..."]').
---     The job detail page parses it with JSON.parse(), which breaks when
---     PostgREST already returns a parsed jsonb array, so keep it TEXT.
---   - `requirements` / `milestones` / `deliverables` / `payout_txs` /
---     `ai_reports` are JSONB. Inserts send JSON.stringify() strings, which
---     Postgres casts to jsonb; reads return parsed values that the app's
---     `typeof === 'string' ? JSON.parse(x) : x` pattern handles fine.
+-- Table summary: `nexus_jobs` stores the dashboard job flow (create / list /
+-- detail / apply / submit / validate / dispute / delete), keyed by a short
+-- text id (e.g. 'job_48162', generated client-side) with denormalized
+-- display fields. It intentionally differs from the `jobs` table in
+-- 001_initial_schema.sql (used by the agent libs + GET /api/jobs); both
+-- tables coexist.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS nexus_jobs (
@@ -56,9 +43,12 @@ CREATE TABLE IF NOT EXISTS nexus_jobs (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Patch up hand-created tables that predate later-added columns. Idempotent,
--- so safe on both fresh setups and existing projects. `milestones` gets its
--- NOT NULL + default so existing rows are backfilled with an empty array.
+-- PATCH (idempotent) ---------------------------------------------------------
+-- Hand-created tables may predate later-added columns (`deadline` and
+-- `milestones` were both confirmed missing on the live project). The CREATE
+-- TABLE above does nothing when the table already exists, so the ALTERs
+-- below repair it. `milestones` gets NOT NULL + default so existing rows are
+-- backfilled with an empty array.
 ALTER TABLE nexus_jobs ADD COLUMN IF NOT EXISTS deadline TEXT;
 ALTER TABLE nexus_jobs ADD COLUMN IF NOT EXISTS milestones JSONB NOT NULL DEFAULT '[]'::jsonb;
 
@@ -70,12 +60,9 @@ CREATE INDEX IF NOT EXISTS idx_nexus_jobs_created_at ON nexus_jobs (created_at D
 -- The dashboard sits behind the auth proxy (see src/proxy.ts), so every
 -- read/write of this table happens in an authenticated session. Keep the
 -- policies permissive across authenticated users — matching the wallet-based
--- identity model of the demo (jobs are keyed by provider address, not by
--- auth.uid()).
+-- identity model (jobs are keyed by provider address, not by auth.uid()).
 ALTER TABLE nexus_jobs ENABLE ROW LEVEL SECURITY;
 
--- DROP guards keep the migration re-runnable (e.g. `supabase db push` onto a
--- project where nexus_jobs was already created by hand with these names).
 DROP POLICY IF EXISTS "Authenticated users can read jobs" ON nexus_jobs;
 CREATE POLICY "Authenticated users can read jobs"
   ON nexus_jobs FOR SELECT
@@ -97,8 +84,7 @@ CREATE POLICY "Authenticated users can delete jobs"
   ON nexus_jobs FOR DELETE
   USING (auth.role() = 'authenticated');
 
--- Reload PostgREST's schema cache so newly added columns are visible to the
--- REST API / supabase-js immediately (fixes: "Could not find the 'deadline'
--- column of 'nexus_jobs' in the schema cache"). No-op on databases where the
--- schema never changed.
+-- Reload PostgREST's schema cache so the REST API / supabase-js sees new
+-- columns immediately (fixes: "Could not find the '<column>' column of
+-- 'nexus_jobs' in the schema cache"). No-op when the schema didn't change.
 NOTIFY pgrst, 'reload schema';
