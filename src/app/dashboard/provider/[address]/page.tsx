@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Code2, Users, Briefcase, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { getEthereumProvider } from '@/lib/ethereum'
+import { getStoredWalletAddress } from '@/lib/wallet'
 
 interface JobRow {
   id: string;
@@ -62,17 +62,7 @@ export default function ProviderProfilePage() {
     try {
       // Fetch the current user's identity into local vars — React state would
       // be stale if read again within this same async function.
-      let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined') {
-        const ethereum = getEthereumProvider();
-        if (ethereum) {
-          try {
-            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-            if (accounts && accounts.length > 0) address = accounts[0]
-          } catch {}
-        }
-      }
-      const wallet = (address || '').toLowerCase()
+      const wallet = (getStoredWalletAddress() || '').toLowerCase()
       const avatar = localStorage.getItem('nexusguard_avatar')
 
       let name = 'UNKNOWN'

@@ -8,7 +8,7 @@ import { Wallet, Activity, Code2, CheckCircle2, CircleDashed } from 'lucide-reac
 import { createClient } from '@/lib/supabase/client'
 import { filterCreatedJobs, filterAppliedJobs, type Job } from '@/lib/jobs'
 import { getErrorMessage } from '@/lib/utils'
-import { getEthereumProvider } from '@/lib/ethereum'
+import { getStoredWalletAddress } from '@/lib/wallet'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -108,21 +108,10 @@ export default function ProfilePage() {
   }
 
   useEffect(() => {
-    // Lấy địa chỉ ví từ localStorage hoặc ethereum window
+    // Read the connected wallet from the shared wallet layer (persisted + synced)
     const fetchWallet = async () => {
-      let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined') {
-        const ethereum = getEthereumProvider()
-        if (ethereum) {
-          try {
-            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-            if (accounts && accounts.length > 0) {
-              address = accounts[0]
-            }
-          } catch {}
-        }
-      }
-      if (address) setUserAddress(address)
+      const stored = getStoredWalletAddress()
+      if (stored) setUserAddress(stored)
     }
 
     const fetchUser = async () => {

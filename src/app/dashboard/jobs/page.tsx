@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { BrainCircuit, ShieldAlert, TerminalSquare, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getEthereumProvider } from '@/lib/ethereum'
+import { getStoredWalletAddress } from '@/lib/wallet'
 
 interface JobRow {
   id: string;
@@ -40,17 +40,8 @@ export default function JobsPage() {
     }
     
     async function fetchUser() {
-      let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined') {
-        const ethereum = getEthereumProvider()
-        if (ethereum) {
-          try {
-            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-            if (accounts && accounts.length > 0) address = accounts[0]
-          } catch {}
-        }
-      }
-      if (address) setCurrentWallet(address.toLowerCase())
+      const stored = getStoredWalletAddress()
+      if (stored) setCurrentWallet(stored.toLowerCase())
       
       setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
       

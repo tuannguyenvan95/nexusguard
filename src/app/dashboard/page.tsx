@@ -6,6 +6,7 @@ import { motion, Variants, AnimatePresence } from 'framer-motion'
 import { LiveTreasuryChart } from '@/components/dashboard/LiveTreasuryChart'
 import { getErrorMessage } from '@/lib/utils'
 import { getEthereumProvider } from '@/lib/ethereum'
+import { useWallet } from '@/hooks/useWallet'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -24,6 +25,7 @@ const itemVariants: Variants = {
 
 export default function DashboardPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  const { address: walletAddress } = useWallet()
   
   const agentDetails = {
     'Escrow': { model: 'GPT-4o', status: 'SYNCED', gas: '124.5 Gwei', success: '99.99%', tasks: 124 },
@@ -49,17 +51,16 @@ export default function DashboardPage() {
           <button 
             onClick={async () => {
               try {
+                if (!walletAddress) {
+                  alert("Vui lòng kết nối ví ở góc trên bên phải trước khi Test!");
+                  return;
+                }
                 const ethereum = getEthereumProvider();
                 if (!ethereum) {
                   alert("Vui lòng cài đặt và kết nối ví MetaMask trước!");
                   return;
                 }
-                const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[];
-                if (!accounts || accounts.length === 0) {
-                  alert("Vui lòng kết nối ví ở góc trên bên phải trước khi Test!");
-                  return;
-                }
-                const from = accounts[0];
+                const from = walletAddress;
                 
                 // Yêu cầu ký một tin nhắn giả lập xác thực
                 const msg = `NexusGuard (Arc Testnet)\n\nXác nhận khởi tạo Agent Tự Trị (Autonomous Agent) cho Treasury.\n\nTimestamp: ${new Date().getTime()}`;

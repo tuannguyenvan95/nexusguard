@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { motion, Variants } from 'framer-motion'
 import { Settings, Shield, Bell, Key, Globe, Database } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
+import { useWallet } from '@/hooks/useWallet'
+import { formatWalletAddress } from '@/lib/wallet'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -19,6 +22,8 @@ const itemVariants: Variants = {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
+  const { isLightMode, setTheme } = useTheme()
+  const { address: walletAddress, walletKind, isConnecting, connect, disconnect } = useWallet()
 
   const tabs = [
     { id: 'general', label: 'General', icon: <Settings className="w-4 h-4" /> },
@@ -80,8 +85,26 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest mb-2">Display Theme</label>
                   <div className="flex gap-4">
-                    <button className="px-4 py-2 bg-gray-900 border border-[#d4af37] text-[#d4af37] rounded-sm font-mono text-xs uppercase cursor-pointer">Dark Mode</button>
-                    <button className="px-4 py-2 bg-gray-900/50 border border-gray-800 text-gray-500 rounded-sm font-mono text-xs uppercase cursor-not-allowed">Light Mode (Coming Soon)</button>
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className={`px-4 py-2 rounded-sm font-mono text-xs uppercase transition-colors cursor-pointer border ${
+                        !isLightMode
+                          ? 'bg-[#d4af37]/10 border-[#d4af37] text-[#d4af37]'
+                          : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                      }`}
+                    >
+                      Dark Mode
+                    </button>
+                    <button
+                      onClick={() => setTheme('light')}
+                      className={`px-4 py-2 rounded-sm font-mono text-xs uppercase transition-colors cursor-pointer border ${
+                        isLightMode
+                          ? 'bg-[#d4af37]/10 border-[#d4af37] text-[#d4af37]'
+                          : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                      }`}
+                    >
+                      Light Mode
+                    </button>
                   </div>
                 </div>
 
@@ -109,9 +132,33 @@ export default function SettingsPage() {
               <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-sm flex items-center justify-between group hover:border-gray-700 transition-colors">
                 <div>
                   <div className="text-sm font-bold text-gray-200">MetaMask Wallet</div>
-                  <div className="text-xs font-mono text-gray-500 mt-1">Connected on Arc Testnet</div>
+                  <div className="text-xs font-mono text-gray-500 mt-1">
+                    {walletAddress ? (
+                      <span className="text-emerald-400">
+                        {formatWalletAddress(walletAddress)} · Connected on Arc Testnet
+                        {walletKind ? <span className="text-gray-500 lowercase"> ({walletKind})</span> : null}
+                      </span>
+                    ) : (
+                      'Not connected — connect to fund escrows and receive USDC.'
+                    )}
+                  </div>
                 </div>
-                <button className="px-3 py-1.5 border border-red-500/50 text-red-400 rounded-sm text-xs font-mono hover:bg-red-500/10 transition-colors uppercase">Disconnect</button>
+                {walletAddress ? (
+                  <button
+                    onClick={disconnect}
+                    className="px-3 py-1.5 border border-red-500/50 text-red-400 rounded-sm text-xs font-mono hover:bg-red-500/10 transition-colors uppercase"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => connect()}
+                    disabled={isConnecting}
+                    className="px-3 py-1.5 border border-[#d4af37]/50 text-[#d4af37] rounded-sm text-xs font-mono hover:bg-[#d4af37]/10 transition-colors uppercase disabled:opacity-50"
+                  >
+                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                  </button>
+                )}
               </div>
             </div>
           )}

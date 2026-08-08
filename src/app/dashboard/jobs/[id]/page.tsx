@@ -12,6 +12,8 @@ import { applyToJob, addApplicant, parseApplicants } from '@/lib/jobs'
 import { getEthereumProvider, isValidWalletAddress } from '@/lib/ethereum'
 import { getErrorMessage } from '@/lib/utils'
 import { ESCROW_V2_ADDRESS } from '@/lib/constants'
+import { getStoredWalletAddress } from '@/lib/wallet'
+import { useWallet } from '@/hooks/useWallet'
 import { ethers } from 'ethers'
 
 interface Deliverable {
@@ -30,6 +32,7 @@ interface PayoutTx {
 export default function JobDetailPage() {
   const params = useParams()
   const id = params.id as string
+  const { address: walletAddress } = useWallet()
 
   // Initial State Setup
   const [jobStatus, setJobStatus] = useState('Open')
@@ -199,25 +202,10 @@ export default function JobDetailPage() {
     }
 
     async function checkWallet() {
-      let w = '';
-      const ethereum = getEthereumProvider();
-      if (ethereum) {
-        try {
-          const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-          if (accounts && accounts.length > 0) {
-            setConnectedWallet(accounts[0])
-            setCurrentWallet(accounts[0].toLowerCase())
-            w = accounts[0].toLowerCase()
-          }
-        } catch (e) {
-          console.error(e)
-        }
-      }
-      
-      const localW = localStorage.getItem('nexusguard_wallet');
-      if (localW && !w) {
-         setConnectedWallet(localW);
-         setCurrentWallet(localW.toLowerCase());
+      const stored = getStoredWalletAddress();
+      if (stored) {
+        setConnectedWallet(stored);
+        setCurrentWallet(stored.toLowerCase());
       }
       
       setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
@@ -295,24 +283,9 @@ export default function JobDetailPage() {
   const handleApplyJob = async () => {
     setIsApplying(true)
     
-    // Resolve the applicant's wallet from the connected extension first, then
+    // Resolve the applicant's wallet from the shared wallet layer first, then
     // fall back to the locally saved address. Never invent one.
-    let applicantAddress = ''
-    try {
-      const ethereum = getEthereumProvider()
-      if (ethereum) {
-        const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-        if (accounts && accounts.length > 0) {
-          applicantAddress = accounts[0]
-        }
-      }
-    } catch (e) {
-      console.error(e)
-    }
-
-    if (!applicantAddress) {
-      applicantAddress = localStorage.getItem('nexusguard_wallet') || ''
-    }
+    const applicantAddress = walletAddress || getStoredWalletAddress() || ''
 
     if (!isValidWalletAddress(applicantAddress)) {
       alert('Connect your wallet first — applications require a valid wallet address.')
@@ -450,18 +423,16 @@ export default function JobDetailPage() {
   const handleClaimRefund = async () => {
     setIsClaimingRefund(true)
     try {
+      if (!walletAddress) {
+        alert('Connect your wallet first — only the job client can claim the refund.')
+        return
+      }
       const ethereum = getEthereumProvider()
       if (!ethereum) {
         alert('Connect your MetaMask wallet to claim the refund.')
         return
       }
-
-      const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
-      if (!accounts || accounts.length === 0) {
-        alert('Connect your wallet first — only the job client can claim the refund.')
-        return
-      }
-      const from = accounts[0]
+      const from = walletAddress
 
       // Only the client who funded the escrow may claim (the contract enforces
       // this too, but fail fast with a friendly message).

@@ -9,15 +9,13 @@ import { createPortal } from 'react-dom'
 import { useAudio } from '@/hooks/useAudio'
 import { useIsClient } from '@/hooks/useIsClient'
 import { useWallet } from '@/hooks/useWallet'
+import { useTheme } from '@/hooks/useTheme'
 import { formatWalletAddress } from '@/lib/wallet'
 
 export function TopHeader() {
   const router = useRouter()
   const mounted = useIsClient()
-  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('theme') === 'light';
-  })
+  const { isLightMode, toggleTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -26,11 +24,6 @@ export function TopHeader() {
   const { address: walletAddress, walletKind, isConnecting, error: walletError, connect, disconnect } = useWallet()
 
   useEffect(() => {
-    // Apply saved theme to <html> (state is initialized lazily already)
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.add('light-theme')
-    }
-
     // Handle click outside for dropdown
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -41,17 +34,9 @@ export function TopHeader() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const toggleTheme = () => {
+  const handleToggleTheme = () => {
     playClick()
-    if (isLightMode) {
-      document.documentElement.classList.remove('light-theme')
-      localStorage.setItem('theme', 'dark')
-      setIsLightMode(false)
-    } else {
-      document.documentElement.classList.add('light-theme')
-      localStorage.setItem('theme', 'light')
-      setIsLightMode(true)
-    }
+    toggleTheme()
   }
 
   const openWalletModal = () => {
@@ -124,7 +109,7 @@ export function TopHeader() {
 
       <div className="flex items-center gap-4">
         <button
-          onClick={toggleTheme}
+          onClick={handleToggleTheme}
           className="p-2 text-gray-400 hover:text-white transition-colors rounded-sm border border-transparent hover:border-gray-700 hover:bg-gray-800/30"
           title={isLightMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
         >

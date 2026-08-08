@@ -9,6 +9,7 @@ import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
 import { createClient } from '@/lib/supabase/client'
 import { getErrorMessage } from '@/lib/utils'
 import { getEthereumProvider } from '@/lib/ethereum'
+import { useWallet } from '@/hooks/useWallet'
 import { validateMilestones, calculateMilestoneAmounts, addMilestone, removeMilestone, MAX_MILESTONES } from '@/lib/jobs'
 import { ESCROW_V2_ADDRESS } from '@/lib/constants'
 
@@ -25,6 +26,7 @@ interface AgentNode {
 export default function CreateJobPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { address: walletAddress } = useWallet()
   
   const defaultNodes: AgentNode[] = [
     { id: 'escrow', name: 'Escrow', desc: 'Smart Contract Mgmt', req: true, color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-400/30' },
@@ -88,6 +90,12 @@ export default function CreateJobPage() {
     setIsSubmitting(true)
     
     try {
+      if (!walletAddress) {
+        alert("Vui lòng kết nối ví ở góc trên bên phải để tạo Escrow Contract!");
+        setIsSubmitting(false)
+        return;
+      }
+
       const ethereum = getEthereumProvider();
       if (!ethereum) {
         alert("Vui lòng cài đặt và kết nối ví MetaMask trước để gọi Smart Contract!");
@@ -95,14 +103,7 @@ export default function CreateJobPage() {
         return;
       }
       
-      const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[];
-      if (!accounts || accounts.length === 0) {
-        alert("Vui lòng kết nối ví để tạo Escrow Contract!");
-        setIsSubmitting(false)
-        return;
-      }
-      
-      const from = accounts[0];
+      const from = walletAddress;
       
       let txValue = '0x0';
       if (formData.currency === 'ETH' || formData.currency === 'ARC' || formData.currency === 'USDC') {
