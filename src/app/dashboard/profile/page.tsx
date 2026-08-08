@@ -1,10 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { motion, Variants } from 'framer-motion'
 import { Wallet, Activity, Code2, CheckCircle2, CircleDashed } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { filterCreatedJobs, filterAppliedJobs, type Job } from '@/lib/jobs'
+import { getErrorMessage } from '@/lib/utils'
+import { getEthereumProvider } from '@/lib/ethereum'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -23,15 +27,26 @@ const itemVariants: Variants = {
 
 export default function ProfilePage() {
   const [userAddress, setUserAddress] = useState<string>('Not Connected')
-  const [createdJobs, setCreatedJobs] = useState<any[]>([])
-  const [appliedJobs, setAppliedJobs] = useState<any[]>([])
+  const [createdJobs, setCreatedJobs] = useState<Job[]>([])
+  const [appliedJobs, setAppliedJobs] = useState<Job[]>([])
   const [userName, setUserName] = useState<string>('Loading...')
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('nexusguard_avatar')
+  })
   
   const [isEditingName, setIsEditingName] = useState(false)
   const [editNameValue, setEditNameValue] = useState('')
 
-  const [socials, setSocials] = useState<{ [key: string]: string }>({})
+  // Read saved socials once (lazy init) — no setState-in-effect needed.
+  const [socials, setSocials] = useState<{ [key: string]: string }>(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      return JSON.parse(localStorage.getItem('nexusguard_socials') || '{}')
+    } catch {
+      return {}
+    }
+  })
 
   const handleSaveName = async () => {
     if (editNameValue.trim()) {
@@ -48,18 +63,14 @@ export default function ProfilePage() {
     setIsEditingName(false)
   }
 
-  const [isConnecting, setIsConnecting] = useState(false)
-
   const handleConnectSocial = async (socialName: string) => {
-    setIsConnecting(true)
     const supabase = createClient()
     
-    const providerMap: Record<string, 'github' | 'google' | 'twitter' | 'discord' | 'azure'> = {
+    const providerMap: Record<string, 'github' | 'google' | 'twitter' | 'discord'> = {
       'GitHub': 'github',
       'Google': 'google',
       'Twitter': 'twitter',
-      'Discord': 'discord',
-      'Telegram': 'azure' // Fake fallback for telegram if not supported, or just ignore
+      'Discord': 'discord'
     }
     
     const oauthProvider = providerMap[socialName]
@@ -87,55 +98,31 @@ export default function ProfilePage() {
         if (result.error) {
           alert(`Lỗi Supabase: ${result.error.message}. Bạn cần bật Provider này trong Supabase Dashboard!`)
         }
-      } catch (e: any) {
+      } catch (e) {
         console.error(e)
-        alert(`Failed to connect ${socialName}: ${e.message}`)
+        alert(`Failed to connect ${socialName}: ${getErrorMessage(e)}`)
       }
     } else {
       alert(`${socialName} direct OAuth is not configured yet.`)
     }
-    
-    setIsConnecting(false)
   }
 
   useEffect(() => {
     // Lấy địa chỉ ví từ localStorage hoặc ethereum window
     const fetchWallet = async () => {
       let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
-          if (accounts && accounts.length > 0) {
-            address = accounts[0]
-          }
-        } catch (err) {}
+      if (!address && typeof window !== 'undefined') {
+        const ethereum = getEthereumProvider()
+        if (ethereum) {
+          try {
+            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
+            if (accounts && accounts.length > 0) {
+              address = accounts[0]
+            }
+          } catch {}
+        }
       }
       if (address) setUserAddress(address)
-    }
-
-    // Lấy danh sách jobs từ Supabase
-    const fetchJobs = async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
-      
-      if (data && !error && userAddress && userAddress !== 'Not Connected') {
-        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`.toLowerCase()
-        
-        const created = data.filter(job => {
-          if (!job.provider) return false
-          try {
-            const p = JSON.parse(job.provider)
-            return p.address?.toLowerCase() === shortAddress || p.toLowerCase() === shortAddress
-          } catch (e) {
-            return job.provider.toLowerCase() === shortAddress
-          }
-        })
-        
-        const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
-        
-        setCreatedJobs(created)
-        setAppliedJobs(applied)
-      }
     }
 
     const fetchUser = async () => {
@@ -163,14 +150,6 @@ export default function ProfilePage() {
       }
     }
 
-    const savedSocials = localStorage.getItem('nexusguard_socials')
-    if (savedSocials) {
-      try {
-        setSocials(JSON.parse(savedSocials))
-      } catch (e) {}
-    }
-
-    setAvatarUrl(localStorage.getItem('nexusguard_avatar'))
     fetchWallet()
     fetchUser()
   }, [])
@@ -182,24 +161,8 @@ export default function ProfilePage() {
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
       
       if (data && !error && userAddress && userAddress !== 'Not Connected') {
-        const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`.toLowerCase()
-        
-        const created = data.filter(job => {
-          if (!job.provider) return false
-          try {
-            // Check if it's JSON
-            const p = JSON.parse(job.provider)
-            return p.address?.toLowerCase() === shortAddress || p.toLowerCase() === shortAddress
-          } catch (e) {
-            // Fallback for plain string
-            return job.provider.toLowerCase() === shortAddress
-          }
-        })
-        
-        const applied = data.filter(job => job.applicant?.toLowerCase() === userAddress.toLowerCase())
-        
-        setCreatedJobs(created)
-        setAppliedJobs(applied)
+        setCreatedJobs(filterCreatedJobs(data, userAddress))
+        setAppliedJobs(filterAppliedJobs(data, userAddress))
       }
     }
     
@@ -268,7 +231,7 @@ export default function ProfilePage() {
                 onClick={() => document.getElementById('avatar-upload')?.click()}
               >
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  <Image src={avatarUrl} alt="Avatar" fill sizes="64px" className="object-cover" />
                 ) : (
                   <div className="absolute inset-0 bg-[#d4af37]/20 flex items-center justify-center">
                     <Wallet className="w-8 h-8 text-[#d4af37]" />
@@ -430,7 +393,7 @@ export default function ProfilePage() {
 
             {createdJobs.length > 0 ? (
               <div className="space-y-3">
-                {createdJobs.slice(0, 3).map((job: any) => (
+                {createdJobs.slice(0, 3).map((job) => (
                   <Link href={`/dashboard/jobs/${job.id}`} key={job.id}>
                     <div className="p-4 bg-gray-900/40 border border-gray-800 rounded-sm hover:border-[#d4af37]/50 transition-colors flex justify-between items-center group cursor-pointer mb-3">
                       <div>
@@ -494,7 +457,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-mono font-bold text-emerald-400">{job.amount}</div>
-                        <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-sm ${getStatusColor(job.status)}`}>
+                        <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-sm ${getStatusColor(job.status || '')}`}>
                           {job.status}
                         </span>
                       </div>

@@ -2,34 +2,32 @@
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Home, LogOut, Volume2, VolumeX, Wallet, Droplets, Sun, Moon, ChevronDown, User, Settings, Briefcase, FileCode2, Send } from 'lucide-react'
+import { ArrowLeft, Home, LogOut, Volume2, VolumeX, Wallet, Droplets, Sun, Moon, ChevronDown, User, Settings, Briefcase, FileCode2, Send, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { createPortal } from 'react-dom'
-import { ethers } from 'ethers'
 import { useAudio } from '@/hooks/useAudio'
+import { useIsClient } from '@/hooks/useIsClient'
+import { useWallet } from '@/hooks/useWallet'
+import { formatWalletAddress } from '@/lib/wallet'
 
 export function TopHeader() {
   const router = useRouter()
-  const supabase = createClient()
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [showWalletModal, setShowWalletModal] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const [isLightMode, setIsLightMode] = useState(false)
+  const mounted = useIsClient()
+  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('theme') === 'light';
+  })
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showWalletModal, setShowWalletModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const { isMuted, toggleMute, playClick } = useAudio()
+  const { isMuted, toggleMute, playClick, playSuccess } = useAudio()
+  const { address: walletAddress, walletKind, isConnecting, error: walletError, connect, disconnect } = useWallet()
 
   useEffect(() => {
-    setMounted(true)
-    if (localStorage.getItem('walletDisconnected') !== 'true') {
-      checkIfWalletIsConnected()
-    }
-    
-    // Check saved theme
+    // Apply saved theme to <html> (state is initialized lazily already)
     if (localStorage.getItem('theme') === 'light') {
-      setIsLightMode(true)
       document.documentElement.classList.add('light-theme')
     }
 
@@ -56,101 +54,33 @@ export function TopHeader() {
     }
   }
 
-  const checkIfWalletIsConnected = async () => {
-    try {
-      const { ethereum } = window as any;
-      if (!ethereum) return;
-      const accounts = await ethereum.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
-        setWalletAddress(accounts[0]);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  const connectWallet = () => {
+  const openWalletModal = () => {
     playClick()
     setShowWalletModal(true)
   }
 
-  const connectMetaMask = async () => {
-    try {
+  const handleConnect = async () => {
+    playClick()
+    const account = await connect()
+    if (account) {
+      playSuccess()
       setShowWalletModal(false)
-      setIsConnecting(true)
-      const { ethereum } = window as any;
-      if (!ethereum) {
-        alert("Please install MetaMask!");
-        setIsConnecting(false)
-        return;
-      }
-      playClick()
-      
-      // Force account selection for NEW connection
-      await ethereum.request({
-        method: 'wallet_requestPermissions',
-        params: [{ eth_accounts: {} }]
-      });
-      
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-      
-      // Enforce Arc Testnet (Chain ID: 5042002 -> 0x4cef52)
-      try {
-        await ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x4cef52' }],
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          try {
-            await ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: '0x4cef52',
-                  chainName: 'Arc Testnet',
-                  nativeCurrency: {
-                    name: 'USDC',
-                    symbol: 'USDC',
-                    decimals: 18,
-                  },
-                  rpcUrls: ['https://rpc.testnet.arc.network'],
-                  blockExplorerUrls: ['https://testnet.arcscan.app'],
-                },
-              ],
-            });
-          } catch (addError) {
-            console.error(addError);
-          }
-        } else {
-          console.error(switchError);
-        }
-      }
-
-      setWalletAddress(accounts[0]);
-      localStorage.removeItem('walletDisconnected');
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsConnecting(false)
     }
   }
 
-  const formatAddress = (address: string) => {
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-  }
-
-  const disconnectWallet = () => {
+  const handleDisconnect = () => {
     playClick()
-    setWalletAddress(null)
-    localStorage.setItem('walletDisconnected', 'true')
+    disconnect()
   }
 
   const handleSignOut = async () => {
     playClick()
+    const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
   }
+
+  const detectedKind = walletKind
 
   return (
     <header className="h-16 border-b border-gray-800 bg-[#030712]/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-50">
@@ -224,7 +154,7 @@ export function TopHeader() {
               }`}
             >
               <Wallet className="w-4 h-4 text-[#d4af37]" />
-              <span className="text-sm font-mono text-gray-300">{formatAddress(walletAddress)}</span>
+              <span className="text-sm font-mono text-gray-300">{formatWalletAddress(walletAddress)}</span>
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
             </button>
 
@@ -235,7 +165,10 @@ export function TopHeader() {
                 {/* Profile Section */}
                 <div className="px-4 py-2 border-b border-gray-800/50 mb-1">
                   <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Signed in as</p>
-                  <p className="text-xs text-emerald-400 font-mono font-bold truncate">{formatAddress(walletAddress)}</p>
+                  <p className="text-xs text-emerald-400 font-mono font-bold truncate">{formatWalletAddress(walletAddress)}</p>
+                  {detectedKind && (
+                    <p className="text-[10px] text-gray-500 font-mono mt-1 capitalize">{detectedKind} connected</p>
+                  )}
                 </div>
 
                 <div className="px-2 space-y-0.5">
@@ -297,7 +230,7 @@ export function TopHeader() {
                   <button 
                     onClick={() => {
                       setShowUserMenu(false)
-                      disconnectWallet()
+                      handleDisconnect()
                     }}
                     className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded-sm transition-colors"
                   >
@@ -322,7 +255,7 @@ export function TopHeader() {
         ) : (
           <div className="flex items-center gap-3">
             <button 
-              onClick={connectWallet}
+              onClick={openWalletModal}
               disabled={isConnecting}
               className="flex items-center gap-2 border border-gray-600 hover:border-[#d4af37] bg-gray-900/50 hover:bg-[#d4af37]/10 px-3 py-1.5 rounded-sm transition-colors"
             >
@@ -353,38 +286,60 @@ export function TopHeader() {
             >
               ✕
             </button>
-            <h2 className="text-xl font-bold text-white mb-6 font-space-grotesk">Connect Wallet</h2>
+            <h2 className="text-xl font-bold text-white mb-1 font-space-grotesk">Connect Wallet</h2>
+            <p className="text-xs text-gray-500 mb-6">Connect to Arc Network (Testnet) to fund escrows and receive USDC.</p>
+
+            {/* Connection error from the wallet / provider */}
+            {walletError && (
+              <div className="mb-4 flex items-start gap-2 border border-red-500/30 bg-red-500/10 px-3 py-2 rounded-sm">
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{walletError}</p>
+              </div>
+            )}
+
             <div className="space-y-3">
               <button 
-                onClick={connectMetaMask}
-                className="w-full bg-[#111] hover:bg-[#222] border border-gray-800 hover:border-[#d4af37] text-white p-4 rounded-lg flex items-center justify-between transition-all"
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="w-full bg-[#111] hover:bg-[#222] border border-gray-800 hover:border-[#d4af37] text-white p-4 rounded-lg flex items-center justify-between transition-all disabled:opacity-50 disabled:cursor-wait"
               >
                 <div className="flex items-center gap-3">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="w-8 h-8" />
+                  <Image src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" width={32} height={32} className="w-8 h-8" />
                   <span className="font-medium">MetaMask</span>
                 </div>
-                <span className="text-xs bg-[#d4af37]/20 text-[#d4af37] px-2 py-1 rounded">Popular</span>
+                {isConnecting ? (
+                  <span className="text-xs bg-[#d4af37]/20 text-[#d4af37] px-2 py-1 rounded animate-pulse">Connecting...</span>
+                ) : (
+                  <span className="text-xs bg-[#d4af37]/20 text-[#d4af37] px-2 py-1 rounded">
+                    {detectedKind === 'metamask' ? 'Detected' : 'Popular'}
+                  </span>
+                )}
               </button>
               
               <button 
-                onClick={() => alert('WalletConnect integration coming soon!')}
-                className="w-full bg-[#111] hover:bg-[#222] border border-gray-800 hover:border-blue-500 text-white p-4 rounded-lg flex items-center gap-3 transition-all opacity-70"
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="w-full bg-[#111] hover:bg-[#222] border border-gray-800 hover:border-blue-600 text-white p-4 rounded-lg flex items-center justify-between transition-all disabled:opacity-50 disabled:cursor-wait"
               >
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">WC</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">C</span>
+                  </div>
+                  <span className="font-medium">Coinbase Wallet</span>
                 </div>
-                <span className="font-medium">WalletConnect</span>
+                {detectedKind === 'coinbase' && (
+                  <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Detected
+                  </span>
+                )}
               </button>
-              
-              <button 
-                onClick={() => alert('Coinbase Wallet integration coming soon!')}
-                className="w-full bg-[#111] hover:bg-[#222] border border-gray-800 hover:border-blue-600 text-white p-4 rounded-lg flex items-center gap-3 transition-all opacity-70"
-              >
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">CB</span>
-                </div>
-                <span className="font-medium">Coinbase Wallet</span>
-              </button>
+
+              {!detectedKind && (
+                <p className="text-center text-[11px] text-gray-600 pt-1">
+                  No wallet extension detected. Install the MetaMask or Coinbase Wallet browser extension to connect.
+                </p>
+              )}
             </div>
           </div>
         </div>,

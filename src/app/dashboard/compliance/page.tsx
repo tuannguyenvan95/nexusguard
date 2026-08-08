@@ -1,17 +1,14 @@
 'use client'
 
 import { Scale, FileText, Download, Activity, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useIsClient } from '@/hooks/useIsClient'
 
 export default function CompliancePage() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useIsClient()
   const [isAuditing, setIsAuditing] = useState(false)
   const [showReport, setShowReport] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const handleRunAudit = () => {
     setIsAuditing(true)

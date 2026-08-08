@@ -1,42 +1,55 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ShieldCheck, Cpu, Code2, Users, Briefcase, Activity } from 'lucide-react'
+import { ArrowLeft, Code2, Users, Briefcase, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getEthereumProvider } from '@/lib/ethereum'
+
+interface JobRow {
+  id: string;
+  title?: string;
+  provider?: string | null;
+  status?: string;
+  amount?: string;
+  date?: string;
+  agent?: string;
+  [key: string]: unknown;
+}
+
+interface ProviderInfo {
+  name: string;
+  avatar: string;
+  totalSpent: number;
+  jobsCreated: number;
+  successRate: number;
+}
 
 export default function ProviderProfilePage() {
   const router = useRouter()
   const params = useParams()
   const providerAddress = decodeURIComponent(params.address as string)
   
-  const [jobs, setJobs] = useState<any[]>([])
+  const [jobs, setJobs] = useState<JobRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [providerInfo, setProviderInfo] = useState({ name: 'UNKNOWN', avatar: '', totalSpent: 0, jobsCreated: 0, successRate: 100 })
+  const [providerInfo, setProviderInfo] = useState<ProviderInfo>({ name: 'UNKNOWN', avatar: '', totalSpent: 0, jobsCreated: 0, successRate: 100 })
 
-  const [currentWallet, setCurrentWallet] = useState('')
-  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
-  const [currentName, setCurrentName] = useState('UNKNOWN')
-
-  useEffect(() => {
-    if (providerAddress.toLowerCase() === 'undefined') {
-       setProviderInfo({ ...providerInfo, name: 'UNKNOWN' })
-    }
-    fetchProviderData()
-  }, [providerAddress])
-
-  const getProviderInfo = (providerStr: string) => {
+  const getProviderInfo = (
+    providerStr: string,
+    currentUser?: { wallet: string; name: string; avatar: string | null }
+  ) => {
     if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
     try {
       if (providerStr.startsWith('{')) {
         const data = JSON.parse(providerStr);
         return { name: data.name || data.address || 'UNKNOWN', avatar: data.avatar || null };
       }
-    } catch (e) {}
+    } catch {}
     const pLow = providerStr.toLowerCase();
-    if (currentWallet && (pLow === currentWallet || pLow.includes(currentWallet.substring(0, 6).toLowerCase()))) {
-      return { name: currentName, avatar: currentAvatar };
+    if (currentUser?.wallet && (pLow === currentUser.wallet || pLow.includes(currentUser.wallet.substring(0, 6).toLowerCase()))) {
+      return { name: currentUser.name, avatar: currentUser.avatar };
     }
     if (pLow.includes('0x123')) return { name: 'ACME NETWORK', avatar: 'https://i.pravatar.cc/150?u=acme' };
     if (pLow.includes('0x456')) return { name: 'NEXUS LABS', avatar: 'https://i.pravatar.cc/150?u=nexus' };
@@ -47,20 +60,26 @@ export default function ProviderProfilePage() {
   const fetchProviderData = async () => {
     setIsLoading(true)
     try {
+      // Fetch the current user's identity into local vars — React state would
+      // be stale if read again within this same async function.
       let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
-          if (accounts && accounts.length > 0) address = accounts[0]
-        } catch (err) {}
+      if (!address && typeof window !== 'undefined') {
+        const ethereum = getEthereumProvider();
+        if (ethereum) {
+          try {
+            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
+            if (accounts && accounts.length > 0) address = accounts[0]
+          } catch {}
+        }
       }
-      if (address) setCurrentWallet(address.toLowerCase())
-      setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
-      
+      const wallet = (address || '').toLowerCase()
+      const avatar = localStorage.getItem('nexusguard_avatar')
+
+      let name = 'UNKNOWN'
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        setCurrentName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+        name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User'
       }
 
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
@@ -68,21 +87,21 @@ export default function ProviderProfilePage() {
       
       if (error) throw error
       
-      const mockJobs = [
+      const mockJobs: JobRow[] = [
         { id: 'job_001', title: 'Smart Contract Audit', amount: '5,000 USDC', status: 'Open', provider: '0x123...abc', date: 'Oct 24, 2026', risk: 'LOW', agent: 'ESCROW NODE' },
         { id: 'job_002', title: 'Frontend Dashboard UI', amount: '2,500 USDC', status: 'Submitted', provider: '0x456...def', date: 'Oct 22, 2026', risk: 'MEDIUM', agent: 'ESCROW NODE' },
         { id: 'job_003', title: 'Subsquid Indexer Setup', amount: '1,200 USDC', status: 'Draft', provider: '--', date: 'Oct 26, 2026', risk: 'N/A', agent: 'PENDING...' },
         { id: 'job_004', title: 'Security Review Phase 1', amount: '8,000 USDC', status: 'Completed', provider: '0x789...ghi', date: 'Oct 15, 2026', risk: 'LOW', agent: 'GUARDIAN NODE' },
       ]
       
-      const allJobs = [...(data || []), ...mockJobs]
+      const allJobs: JobRow[] = [...(data || []), ...mockJobs]
       
-      let matchedJobs: any[] = []
-      let finalName = providerAddress
+      const matchedJobs: JobRow[] = []
+      let finalName = providerAddress === 'undefined' ? 'UNKNOWN' : providerAddress
       let finalAvatar = ''
       
       allJobs.forEach(job => {
-        const info = getProviderInfo(job.provider)
+        const info = getProviderInfo(job.provider || '', { wallet, name, avatar })
         if (info.name && info.name.toLowerCase() === providerAddress.toLowerCase()) {
           matchedJobs.push(job)
           finalName = info.name
@@ -122,6 +141,13 @@ export default function ProviderProfilePage() {
     }
   }
 
+  useEffect(() => {
+    // Async fetch on mount / address change — setStates happen after awaits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProviderData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerAddress])
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Open': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30'
@@ -160,7 +186,7 @@ export default function ProviderProfilePage() {
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="w-24 h-24 rounded-full bg-[#d4af37]/10 border-2 border-[#d4af37]/30 flex items-center justify-center overflow-hidden mb-4 relative">
                   {providerInfo.avatar ? (
-                    <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
+                    <Image src={providerInfo.avatar} alt={providerInfo.name} fill sizes="96px" className="object-cover" />
                   ) : (
                     <span className="text-4xl text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name.charAt(0).toUpperCase()}</span>
                   )}
@@ -206,7 +232,7 @@ export default function ProviderProfilePage() {
                       
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="text-white font-bold text-lg group-hover:text-[#d4af37] transition-colors">{job.title}</h3>
-                        <span className={`px-2 py-1 text-[9px] uppercase tracking-widest font-bold border ${getStatusColor(job.status)}`}>
+                        <span className={`px-2 py-1 text-[9px] uppercase tracking-widest font-bold border ${getStatusColor(job.status || '')}`}>
                           {job.status}
                         </span>
                       </div>

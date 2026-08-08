@@ -1,14 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { BrainCircuit, ShieldAlert, TerminalSquare, Search, Building2 } from 'lucide-react'
+import { BrainCircuit, ShieldAlert, TerminalSquare, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getEthereumProvider } from '@/lib/ethereum'
+
+interface JobRow {
+  id: string;
+  title: string;
+  amount: string;
+  status: string;
+  provider: string;
+  date: string;
+  risk: string;
+  agent: string;
+}
 
 export default function JobsPage() {
   const [activeTab, setActiveTab] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [localJobs, setLocalJobs] = useState<any[]>([])
+  const [localJobs, setLocalJobs] = useState<JobRow[]>([])
   const [currentWallet, setCurrentWallet] = useState('')
   const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
   const [currentName, setCurrentName] = useState('NEXUS CLIENT')
@@ -28,11 +41,14 @@ export default function JobsPage() {
     
     async function fetchUser() {
       let address = localStorage.getItem('nexusguard_wallet')
-      if (!address && typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
-          if (accounts && accounts.length > 0) address = accounts[0]
-        } catch (err) {}
+      if (!address && typeof window !== 'undefined') {
+        const ethereum = getEthereumProvider()
+        if (ethereum) {
+          try {
+            const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
+            if (accounts && accounts.length > 0) address = accounts[0]
+          } catch {}
+        }
       }
       if (address) setCurrentWallet(address.toLowerCase())
       
@@ -78,6 +94,17 @@ export default function JobsPage() {
     }
   }
 
+  // Deterministic fake tx hash per job (stable across renders — Math.random
+  // in JSX would flicker on every re-render).
+  const jobTxHash = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash << 5) - hash + id.charCodeAt(i);
+      hash |= 0;
+    }
+    return '0x' + Math.abs(hash).toString(16).padStart(8, '0').toUpperCase() + (id.length * 7919).toString(16).toUpperCase().padStart(4, '0');
+  }
+
   const getProviderInfo = (providerStr: string) => {
     if (!providerStr || providerStr === '--') return { name: 'UNKNOWN', avatar: null };
     
@@ -87,7 +114,7 @@ export default function JobsPage() {
         const data = JSON.parse(providerStr);
         return { name: data.name || data.address || 'UNKNOWN', avatar: data.avatar || null };
       }
-    } catch (e) {
+    } catch {
       // Ignore and fallback
     }
 
@@ -173,7 +200,7 @@ export default function JobsPage() {
               <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-sm p-6 hover:border-[#d4af37]/50 hover:bg-gray-900/60 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.08)] transition-all duration-300 relative flex flex-col h-full overflow-hidden">
                 {/* Background Hash Log (Aesthetic) */}
                 <div className="absolute top-2 right-4 text-[8px] font-mono text-gray-800 select-none opacity-20 pointer-events-none tracking-widest">
-                  TX: {Math.random().toString(36).substring(2, 15).toUpperCase()}
+                  TX: {jobTxHash(job.id)}
                 </div>
 
                 {/* Corner accents */}
@@ -186,9 +213,9 @@ export default function JobsPage() {
                   <div>
                     <div className="flex items-center gap-3 mb-3">
                       {/* Provider Logo / Avatar */}
-                      <div className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
+                      <div className="relative w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
                         {providerInfo.avatar ? (
-                          <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
+                          <Image src={providerInfo.avatar} alt={providerInfo.name} fill sizes="32px" className="object-cover" />
                         ) : (
                           <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name ? providerInfo.name.charAt(0).toUpperCase() : 'N'}</span>
                         )}

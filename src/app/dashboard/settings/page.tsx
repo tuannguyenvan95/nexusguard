@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, Variants } from 'framer-motion'
-import { Settings, Shield, Bell, Key, Globe, Layout, Database } from 'lucide-react'
+import { Settings, Shield, Bell, Key, Globe, Database } from 'lucide-react'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },

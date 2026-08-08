@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion, Variants } from 'framer-motion'
-import { Trophy, TrendingUp, Users, Target, ShieldCheck, Briefcase, Code } from 'lucide-react'
+import Image from 'next/image'
+import { Trophy, TrendingUp, ShieldCheck, Briefcase, Code } from 'lucide-react'
 import Link from 'next/link'
 
 const containerVariants: Variants = {
@@ -88,8 +88,8 @@ export default function LeaderboardPage() {
 
                   {/* Avatar & Name */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-sm bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
-                      <img src={provider.avatar} alt={provider.name} className="w-full h-full object-cover" />
+                    <div className="relative w-10 h-10 rounded-sm bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
+                      <Image src={provider.avatar} alt={provider.name} fill sizes="40px" className="object-cover" />
                     </div>
                     <div className="truncate">
                       <div className="text-sm font-bold text-gray-200 group-hover/row:text-[#d4af37] transition-colors truncate">{provider.name}</div>
@@ -133,8 +133,8 @@ export default function LeaderboardPage() {
 
                   {/* Avatar, Name & Badge */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-sm bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
-                      <img src={dev.avatar} alt={dev.name} className="w-full h-full object-cover" />
+                    <div className="relative w-10 h-10 rounded-sm bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
+                      <Image src={dev.avatar} alt={dev.name} fill sizes="40px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">

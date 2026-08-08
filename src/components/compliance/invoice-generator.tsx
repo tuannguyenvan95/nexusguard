@@ -9,6 +9,10 @@ export function InvoiceGenerator() {
   const [jurisdiction, setJurisdiction] = useState<'VN' | 'US'>('US');
   const [fromName, setFromName] = useState('NexusGuard Agentic');
   const [toName, setToName] = useState('');
+  // Stable invoice number per mount — lazy init avoids impure Math.random in render.
+  const [invoiceNumber] = useState(() =>
+    `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+  );
 
   // Mock job data
   const jobs = [
@@ -121,7 +125,7 @@ export function InvoiceGenerator() {
           <div className="flex justify-between items-start mb-12">
             <div>
               <h3 className="text-2xl font-black text-gray-900 tracking-tight">INVOICE</h3>
-              <p className="text-gray-500 text-sm mt-1">INV-{new Date().getFullYear()}-{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}</p>
+              <p className="text-gray-500 text-sm mt-1">{invoiceNumber}</p>
             </div>
             <div className="text-right">
               <div className="w-8 h-8 rounded-lg bg-blue-600 ml-auto mb-2 flex items-center justify-center">

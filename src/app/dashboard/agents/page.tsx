@@ -1,51 +1,80 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ShieldCheck, Cpu, Scale, CreditCard, ShieldAlert, Activity, Terminal } from 'lucide-react'
+import { useIsClient } from '@/hooks/useIsClient'
+
+interface Agent {
+  name: string;
+  role: string;
+  status: string;
+  uptime: string;
+  color: string;
+  icon: typeof ShieldCheck;
+}
+
+interface AgentConfig {
+  strictness?: string;
+  model?: string;
+  threshold?: number;
+  multisig?: boolean;
+  kyc?: boolean;
+  tax?: string;
+  batch?: boolean;
+  gas?: number;
+  maxTx?: number;
+  blockVpn?: boolean;
+}
 
 export default function AgentsPage() {
-  const [selectedAgent, setSelectedAgent] = useState<any | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [agentConfigs, setAgentConfigs] = useState<Record<string, any>>({})
-  const [currentModalConfig, setCurrentModalConfig] = useState<any>({})
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+  const mounted = useIsClient()
+  // Read saved configs once (lazy init) — no setState-in-effect needed.
+  const [agentConfigs, setAgentConfigs] = useState<Record<string, AgentConfig>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      return JSON.parse(localStorage.getItem('nexusguard_agent_configs') || '{}');
+    } catch {
+      return {};
+    }
+  })
+  const [currentModalConfig, setCurrentModalConfig] = useState<AgentConfig>({})
   const [showDeployModal, setShowDeployModal] = useState(false)
   const [newAgentForm, setNewAgentForm] = useState({ name: '', role: '', endpoint: '' })
 
-  const [activeAgents, setActiveAgents] = useState([
+  const defaultAgents: Agent[] = [
     { name: 'Escrow', role: 'Smart Contract Mgmt', status: 'Active', uptime: '99.9%', color: 'blue', icon: ShieldCheck },
     { name: 'Validator', role: 'Deliverable QA', status: 'Active', uptime: '99.8%', color: 'purple', icon: Cpu },
     { name: 'Compliance', role: 'Tax & Regulatory', status: 'Active', uptime: '100%', color: 'emerald', icon: Scale },
     { name: 'Treasury', role: 'Fund Disbursement', status: 'Active', uptime: '99.9%', color: 'yellow', icon: CreditCard },
     { name: 'Guardian', role: 'Fraud Detection', status: 'Active', uptime: '99.9%', color: 'red', icon: ShieldAlert },
-  ])
+  ]
 
-  useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem('nexusguard_agent_configs')
-    if (saved) {
-      setAgentConfigs(JSON.parse(saved))
+  // Merge saved custom agents in once (lazy init) — no setState-in-effect needed.
+  const [activeAgents, setActiveAgents] = useState<Agent[]>(() => {
+    if (typeof window === 'undefined') return defaultAgents;
+    try {
+      const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
+      if (!Array.isArray(custom) || custom.length === 0) return defaultAgents;
+      const existingNames = defaultAgents.map(a => a.name)
+      const newAgents: Agent[] = custom
+        .filter((c: { name?: string }) => !existingNames.includes(c.name || ''))
+        .map((c: { name: string; desc?: string }) => ({
+          name: c.name,
+          role: c.desc || 'Custom Agent',
+          status: 'Active',
+          uptime: '100%',
+          color: 'emerald',
+          icon: Terminal
+        }))
+      return [...defaultAgents, ...newAgents]
+    } catch {
+      return defaultAgents
     }
-    const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
-    if (custom.length > 0) {
-      setActiveAgents(prev => {
-        const existingNames = prev.map(a => a.name)
-        const newAgents = custom
-          .filter((c: any) => !existingNames.includes(c.name))
-          .map((c: any) => ({
-            name: c.name,
-            role: c.desc,
-            status: 'Active',
-            uptime: '100%',
-            color: 'emerald',
-            icon: Terminal
-          }))
-        return [...prev, ...newAgents]
-      })
-    }
-  }, [])
+  })
 
-  const getDefaultConfig = (name: string) => {
+  const getDefaultConfig = (name: string): AgentConfig => {
     switch(name) {
       case 'Validator': return { strictness: 'Standard (Balanced)', model: 'GPT-4o (OpenAI)' }
       case 'Escrow': return { threshold: 100, multisig: true }
@@ -56,11 +85,10 @@ export default function AgentsPage() {
     }
   }
 
-  useEffect(() => {
-    if (selectedAgent) {
-      setCurrentModalConfig(agentConfigs[selectedAgent.name] || getDefaultConfig(selectedAgent.name))
-    }
-  }, [selectedAgent, agentConfigs])
+  const openAgentModal = (agent: Agent) => {
+    setSelectedAgent(agent)
+    setCurrentModalConfig(agentConfigs[agent.name] || getDefaultConfig(agent.name))
+  }
 
   const handleSaveConfig = () => {
     if (!selectedAgent) return
@@ -70,11 +98,11 @@ export default function AgentsPage() {
     setSelectedAgent(null)
   }
 
-  const getPrimaryConfigDisplay = (name: string, config: any) => {
+  const getPrimaryConfigDisplay = (name: string, config: AgentConfig) => {
     switch(name) {
-      case 'Validator': return `Model: ${config.model.split(' ')[0]}`
+      case 'Validator': return `Model: ${String(config.model || '').split(' ')[0]}`
       case 'Escrow': return `Limit: ${config.threshold} USDC`
-      case 'Compliance': return `Tax: ${config.tax.split(' ')[0]}`
+      case 'Compliance': return `Tax: ${String(config.tax || '').split(' ')[0]}`
       case 'Treasury': return `Max Gas: ${config.gas} Gwei`
       case 'Guardian': return `Max Tx: $${config.maxTx}`
       default: return ''
@@ -172,7 +200,7 @@ export default function AgentsPage() {
           return (
             <div 
               key={agent.name}
-              onClick={() => setSelectedAgent(agent)}
+              onClick={() => openAgentModal(agent)}
               className={`group bg-gray-900/40 border rounded-sm p-5 relative transition-all duration-300 ${getAgentColorStyle(agent.color)} cursor-pointer hover:-translate-y-1`}
             >
               {/* Corner accents */}

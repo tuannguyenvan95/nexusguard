@@ -108,7 +108,7 @@ export class EscrowAgent extends BaseAgent {
     const walletId = teamInfo?.treasury_wallet_id || 'dummy_wallet_id';
 
     // 2. Call approveUSDC
-    const approveTx = await approveUSDC(walletId, '0xDummySpender', String(job.budget || 0));
+    await approveUSDC(walletId, '0xDummySpender', String(job.budget || 0));
     
     // 3. Call fundJob from transactions.ts
     const fundTx = await fundJob(walletId, job.onchain_job_id || '0', String(job.budget || 0));

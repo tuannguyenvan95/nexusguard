@@ -2,11 +2,30 @@
 
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle, Building2 } from 'lucide-react'
+import { Check, Code, Link as LinkIcon, Loader2, Wallet, AtSign, CheckCircle2, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { createClient } from '@/lib/supabase/client'
+import { applyToJob, addApplicant, parseApplicants } from '@/lib/jobs'
+import { getEthereumProvider, isValidWalletAddress } from '@/lib/ethereum'
+import { getErrorMessage } from '@/lib/utils'
+import { ESCROW_V2_ADDRESS } from '@/lib/constants'
+import { ethers } from 'ethers'
+
+interface Deliverable {
+  submitterWallet?: string;
+  githubUrl?: string;
+  previewUrl?: string;
+  socialHandle?: string;
+  [key: string]: unknown;
+}
+
+interface PayoutTx {
+  address: string;
+  txHash: string;
+}
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -19,13 +38,13 @@ export default function JobDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAiValidating, setIsAiValidating] = useState(false)
   const [validationLogs, setValidationLogs] = useState<string[]>([])
-  const [aiReport, setAiReport] = useState<string>('')
+
 
   const [githubUrl, setGithubUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
   const [submitterWallet, setSubmitterWallet] = useState('')
   const [socialHandle, setSocialHandle] = useState('')
-  const [payoutTxHash, setPayoutTxHash] = useState('')
+
 
   const [currentDelIndex, setCurrentDelIndex] = useState(0)
 
@@ -45,6 +64,14 @@ export default function JobDetailPage() {
   const [editPayoutType, setEditPayoutType] = useState('winner_takes_all')
   const [editMaxWinners, setEditMaxWinners] = useState('1')
   const [editAgent, setEditAgent] = useState('ESCROW NODE')
+
+  // V2 Milestone & Dispute State
+  const [milestones, setMilestones] = useState<{name?: string, amount: string, percent?: number, status: string, disputeOpen: boolean, disputeResult: string}[]>([])
+  const [showDisputeModal, setShowDisputeModal] = useState(false)
+  const [disputeMilestoneIdx, setDisputeMilestoneIdx] = useState(-1)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [jobDeadline, setJobDeadline] = useState('')
+  const [isClaimingRefund, setIsClaimingRefund] = useState(false)
   
   const isMockJob = id === 'job_001' || id === 'job_002'
 
@@ -62,8 +89,8 @@ export default function JobDetailPage() {
     maxWinners: '1',
     agent: 'Claude 3.5 Sonnet',
     applicant: [] as string[],
-    payoutTxs: [] as {address: string, txHash: string}[],
-    deliverables: [] as any[],
+    payoutTxs: [] as PayoutTx[],
+    deliverables: [] as Deliverable[],
     ai_reports: {} as Record<string, string>
   })
 
@@ -78,7 +105,7 @@ export default function JobDetailPage() {
           try {
             const parsed = JSON.parse(data.applicant)
             parsedApplicants = Array.isArray(parsed) ? parsed : [data.applicant]
-          } catch (e) {
+          } catch {
             parsedApplicants = [data.applicant]
           }
         }
@@ -92,7 +119,7 @@ export default function JobDetailPage() {
           }
         }
 
-        let parsedDeliverables: any[] = []
+        let parsedDeliverables: Deliverable[] = []
         if (data.deliverables) {
           try {
             const parsed = typeof data.deliverables === 'string' ? JSON.parse(data.deliverables) : data.deliverables
@@ -132,6 +159,15 @@ export default function JobDetailPage() {
         if (data.status) {
           setJobStatus(data.status)
         }
+
+        // V2: Parse milestones
+        if (data.milestones) {
+          try {
+            const parsed = typeof data.milestones === 'string' ? JSON.parse(data.milestones) : data.milestones
+            if (Array.isArray(parsed)) setMilestones(parsed)
+          } catch (e) { console.error('Failed to parse milestones', e) }
+        }
+        if (data.deadline) setJobDeadline(data.deadline)
       } else {
         // Fallback for mock jobs
         const mockJobs = [
@@ -164,9 +200,10 @@ export default function JobDetailPage() {
 
     async function checkWallet() {
       let w = '';
-      if (typeof window !== 'undefined' && typeof (window as any).ethereum !== 'undefined') {
+      const ethereum = getEthereumProvider();
+      if (ethereum) {
         try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
+          const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
           if (accounts && accounts.length > 0) {
             setConnectedWallet(accounts[0])
             setCurrentWallet(accounts[0].toLowerCase())
@@ -177,7 +214,7 @@ export default function JobDetailPage() {
         }
       }
       
-      let localW = localStorage.getItem('nexusguard_wallet');
+      const localW = localStorage.getItem('nexusguard_wallet');
       if (localW && !w) {
          setConnectedWallet(localW);
          setCurrentWallet(localW.toLowerCase());
@@ -258,66 +295,93 @@ export default function JobDetailPage() {
   const handleApplyJob = async () => {
     setIsApplying(true)
     
-    // Try to get wallet address
-    let applicantAddress = '0x123...abc (Simulated)'
+    // Resolve the applicant's wallet from the connected extension first, then
+    // fall back to the locally saved address. Never invent one.
+    let applicantAddress = ''
     try {
-      const ethereum = (window as any).ethereum
+      const ethereum = getEthereumProvider()
       if (ethereum) {
-        const accounts = await ethereum.request({ method: 'eth_accounts' })
+        const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
         if (accounts && accounts.length > 0) {
           applicantAddress = accounts[0]
         }
       }
     } catch (e) {
-      console.log(e)
+      console.error(e)
     }
 
-    setTimeout(async () => {
-      let updatedApplicants = Array.isArray(job.applicant) ? [...job.applicant] : []
-      if (!updatedApplicants.includes(applicantAddress)) {
-        updatedApplicants.push(applicantAddress)
-      }
-      const applicantsJson = JSON.stringify(updatedApplicants)
+    if (!applicantAddress) {
+      applicantAddress = localStorage.getItem('nexusguard_wallet') || ''
+    }
 
-      const supabase = createClient()
-      const { error } = await supabase.from('nexus_jobs').update({ status: 'In Progress', applicant: applicantsJson }).eq('id', job.id)
-      
-      if (!error) {
-        setJobStatus('In Progress')
-        setJob(prev => ({ ...prev, applicant: updatedApplicants }))
-      } else {
-        alert('Lỗi cập nhật CSDL: ' + error.message)
-      }
+    if (!isValidWalletAddress(applicantAddress)) {
+      alert('Connect your wallet first — applications require a valid wallet address.')
       setIsApplying(false)
-    }, 1000)
+      return
+    }
+
+    const result = await applyToJob(job.applicant, applicantAddress, async (updates) => {
+      const supabase = createClient()
+      return supabase.from('nexus_jobs').update(updates).eq('id', job.id)
+    })
+
+    if (result.success) {
+      setJobStatus('In Progress')
+      setJob(prev => ({ ...prev, applicant: addApplicant(parseApplicants(prev.applicant), applicantAddress) }))
+    } else {
+      alert('Failed to update database: ' + result.error)
+    }
+
+    setIsApplying(false)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!githubUrl || !previewUrl || !submitterWallet) return
+
+    // The submitter wallet is persisted with the deliverable and used for the
+    // payout — never accept a fake or malformed one.
+    if (!isValidWalletAddress(submitterWallet)) {
+      alert('Submitter wallet must be a valid 0x address (40 hex characters).')
+      return
+    }
     
     setIsSubmitting(true)
-    // Simulate transaction delay
-    setTimeout(async () => {
+    try {
       const newDeliverable = { submitterWallet, githubUrl, previewUrl, socialHandle }
       const updatedDeliverables = [...(job.deliverables || []), newDeliverable]
       
       const supabase = createClient()
-      await supabase.from('nexus_jobs').update({ status: 'Submitted', deliverables: JSON.stringify(updatedDeliverables) }).eq('id', job.id)
+      const { error } = await supabase.from('nexus_jobs').update({ status: 'Submitted', deliverables: JSON.stringify(updatedDeliverables) }).eq('id', job.id)
+
+      if (error) {
+        console.error('Failed to submit deliverable:', error)
+        alert('Failed to submit deliverable. Please try again.')
+        return
+      }
 
       setJob(prev => ({ ...prev, deliverables: updatedDeliverables }))
-      setIsSubmitting(false)
       setIsModalOpen(false)
       setJobStatus('Submitted')
       
-      // Auto-trigger AI validation after a brief moment
-      setTimeout(() => {
-        handleAiValidation()
-      }, 800)
-    }, 2000)
+      // Auto-trigger AI validation
+      handleAiValidation()
+    } catch (err) {
+      console.error('Error submitting deliverable:', err)
+      alert('Failed to submit deliverable. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleAiValidation = async () => {
+    // Funds are released to this wallet on the chain — refuse to run with a
+    // fake or missing one instead of falling back to a demo address.
+    if (!isValidWalletAddress(submitterWallet)) {
+      alert('A valid submitter wallet is required before AI validation can release funds.')
+      return
+    }
+
     setIsAiValidating(true)
     setValidationLogs([
       '> INITIATING AI ESCROW VALIDATION...',
@@ -335,7 +399,7 @@ export default function JobDetailPage() {
           jobTitle: job.title,
           githubUrl: githubUrl || "https://github.com/org/repo/pull/42",
           previewUrl: previewUrl || "dashboard-preview.vercel.app",
-          submitterWallet: submitterWallet || "0x789...abc",
+          submitterWallet,
           agent: job.agent,
           payoutType: job.payoutType,
           maxWinners: job.maxWinners,
@@ -355,8 +419,6 @@ export default function JobDetailPage() {
         ])
         setTimeout(async () => {
           setIsAiValidating(false)
-          setPayoutTxHash(data.txHash)
-          setAiReport(data.report)
           const updatedPayoutTxs = [...(job.payoutTxs || [])]
           updatedPayoutTxs.push({ address: submitterWallet, txHash: data.txHash })
           
@@ -379,9 +441,92 @@ export default function JobDetailPage() {
         setValidationLogs(prev => [...prev, `> ERROR: ${data.error || 'API CALL FAILED.'}`])
         // Removed setTimeout so user can read the error
       }
-    } catch (err) {
+    } catch {
       setValidationLogs(prev => [...prev, '> ERROR: NETWORK TIMEOUT.'])
       // Removed setTimeout
+    }
+  }
+
+  const handleClaimRefund = async () => {
+    setIsClaimingRefund(true)
+    try {
+      const ethereum = getEthereumProvider()
+      if (!ethereum) {
+        alert('Connect your MetaMask wallet to claim the refund.')
+        return
+      }
+
+      const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[]
+      if (!accounts || accounts.length === 0) {
+        alert('Connect your wallet first — only the job client can claim the refund.')
+        return
+      }
+      const from = accounts[0]
+
+      // Only the client who funded the escrow may claim (the contract enforces
+      // this too, but fail fast with a friendly message).
+      let providerAddress = job.provider
+      try {
+        if (job.provider && job.provider.startsWith('{')) {
+          providerAddress = JSON.parse(job.provider).address
+        }
+      } catch {}
+      const shortFrom = `${from.substring(0, 6)}...${from.substring(from.length - 4)}`.toLowerCase()
+      const isClient =
+        (providerAddress || '').toLowerCase() === from.toLowerCase() ||
+        (providerAddress || '').toLowerCase() === shortFrom
+      if (!isClient) {
+        alert('Only the job client can claim the refund.')
+        return
+      }
+
+      // Encode claimRefundAfterDeadline(jobId) against the V2 escrow contract.
+      const escrowAbiV2Refund = ["function claimRefundAfterDeadline(string calldata jobId) external"]
+      const iface = new ethers.Interface(escrowAbiV2Refund)
+      const dataPayload = iface.encodeFunctionData('claimRefundAfterDeadline', [job.id])
+
+      const txHash = (await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from,
+          to: ESCROW_V2_ADDRESS,
+          data: dataPayload,
+        }],
+      })) as string
+
+      // On-chain refund submitted — reflect it in the database: mark every
+      // pending (non-disputed) milestone Refunded and close the job.
+      const updatedMilestones = milestones.map(ms =>
+        ms.status === 'Pending' && !ms.disputeOpen
+          ? { ...ms, status: 'Refunded' }
+          : ms
+      )
+
+      const supabase = createClient()
+      const { error: dbError } = await supabase.from('nexus_jobs').update({
+        status: 'Rejected',
+        milestones: JSON.stringify(updatedMilestones),
+      }).eq('id', job.id)
+
+      setMilestones(updatedMilestones)
+      setJobStatus('Rejected')
+
+      if (dbError) {
+        // Funds moved on-chain but the local record could not be updated.
+        console.error('Refund tx succeeded but DB update failed:', dbError)
+        alert(`Refund claimed on-chain (TxHash: ${txHash}), but saving to the database failed: ${dbError.message}`)
+      } else {
+        alert(`Refund claimed! Unreleased milestone funds are returning to your wallet.\nTxHash: ${txHash}`)
+      }
+    } catch (err) {
+      console.error('Failed to claim refund:', err)
+      if ((err as { code?: number }).code === 4001) {
+        alert('You rejected the refund transaction.')
+      } else {
+        alert(`Refund failed: ${getErrorMessage(err)}`)
+      }
+    } finally {
+      setIsClaimingRefund(false)
     }
   }
 
@@ -394,7 +539,7 @@ export default function JobDetailPage() {
         const data = JSON.parse(providerStr);
         return { name: data.name || data.address || 'UNKNOWN', avatar: data.avatar || null };
       }
-    } catch (e) {
+    } catch {
       // Ignore and fallback
     }
 
@@ -429,9 +574,9 @@ export default function JobDetailPage() {
           </div>
           <div className="flex items-center gap-3 mt-1">
             {/* CACHE BUSTER 2026-07-26 */}
-            <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo?.name === 'undefined' ? 'UNKNOWN' : (providerInfo?.name || 'UNKNOWN'))}`} className="w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden hover:border-[#d4af37] transition-colors cursor-pointer">
+            <Link href={`/dashboard/provider/${encodeURIComponent(providerInfo?.name === 'undefined' ? 'UNKNOWN' : (providerInfo?.name || 'UNKNOWN'))}`} className="relative w-8 h-8 rounded-sm bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden hover:border-[#d4af37] transition-colors cursor-pointer">
               {providerInfo.avatar ? (
-                <img src={providerInfo.avatar} alt={providerInfo.name} className="w-full h-full object-cover" />
+                <Image src={providerInfo.avatar} alt={providerInfo.name} fill sizes="32px" className="object-cover" />
               ) : (
                 <span className="text-[#d4af37] font-bold font-space-grotesk">{providerInfo.name ? providerInfo.name.charAt(0).toUpperCase() : 'N'}</span>
               )}
@@ -456,10 +601,10 @@ export default function JobDetailPage() {
                 const data = JSON.parse(job.provider);
                 providerAddress = data.address;
               }
-            } catch (e) {}
+            } catch {}
 
             const hasApplied = job.applicant && Array.isArray(job.applicant) && job.applicant.some((a: string) => a.toLowerCase() === connectedWallet?.toLowerCase());
-            const hasSubmitted = job.deliverables && Array.isArray(job.deliverables) && job.deliverables.some((d: any) => d.submitterWallet?.toLowerCase() === connectedWallet?.toLowerCase());
+            const hasSubmitted = job.deliverables && Array.isArray(job.deliverables) && job.deliverables.some((d: Deliverable) => d.submitterWallet?.toLowerCase() === connectedWallet?.toLowerCase());
             const isCompleted = jobStatus === 'Completed';
             const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress?.toLowerCase()));
             
@@ -502,7 +647,7 @@ export default function JobDetailPage() {
                 const data = JSON.parse(job.provider);
                 providerAddress = data.address;
               }
-            } catch (e) {}
+            } catch {}
             
             const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress?.toLowerCase()));
             
@@ -567,7 +712,7 @@ export default function JobDetailPage() {
                       if (job.provider && job.provider.startsWith('{')) {
                         return JSON.parse(job.provider).address;
                       }
-                    } catch (e) {}
+                    } catch {}
                     return job.provider;
                   })()}
                 </div>
@@ -618,12 +763,96 @@ export default function JobDetailPage() {
             </div>
           </div>
 
+          {/* ═══ V2: MILESTONE PROGRESS ═══ */}
+          {milestones.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-900/40 border border-[#d4af37]/20 rounded-sm p-6 space-y-4">
+              <h3 className="text-xs font-bold text-[#d4af37] uppercase tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+                Milestone Progress (V2 Escrow)
+              </h3>
+              <div className="space-y-3">
+                {milestones.map((ms, idx) => {
+                  const sc = ms.status === 'Released' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30' 
+                    : ms.status === 'Refunded' ? 'text-red-400 bg-red-400/10 border-red-400/30'
+                    : ms.disputeOpen ? 'text-orange-400 bg-orange-400/10 border-orange-400/30'
+                    : 'text-gray-400 bg-gray-800/50 border-gray-700'
+                  return (
+                    <div key={idx} className={`p-4 border rounded-sm ${sc} transition-all`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${sc}`}>
+                            {ms.status === 'Released' ? '✓' : idx + 1}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold">{ms.name || `Milestone ${idx + 1}`}</div>
+                            <div className="text-[10px] text-gray-500">{ms.amount}{ms.percent ? ` (${ms.percent}%)` : ''}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] uppercase tracking-widest px-2 py-1 rounded-sm border ${sc}`}>
+                            {ms.disputeOpen ? '⚠ DISPUTED' : ms.status || 'Pending'}
+                          </span>
+                          {ms.status === 'Pending' && !ms.disputeOpen && (
+                            <button
+                              onClick={() => { setDisputeMilestoneIdx(idx); setShowDisputeModal(true); }}
+                              className="text-[9px] uppercase tracking-widest px-2 py-1 rounded-sm border border-orange-500/30 text-orange-400 hover:bg-orange-400/10 transition-colors"
+                            >
+                              Open Dispute
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {ms.disputeResult && ms.disputeResult !== 'None' && (
+                        <div className="mt-2 text-[10px] text-gray-400 border-t border-gray-800 pt-2">
+                          Resolved: {ms.disputeResult === 'FreelancerWins' ? '✅ Freelancer Wins' : '🔄 Client Refunded'}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Overall progress bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                  <span>Progress</span>
+                  <span>{milestones.filter(m => m.status === 'Released').length}/{milestones.length} completed</span>
+                </div>
+                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#d4af37] to-emerald-400 rounded-full transition-all duration-500"
+                    style={{ width: `${(milestones.filter(m => m.status === 'Released').length / milestones.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══ V2: DEADLINE REFUND BANNER ═══ */}
+          {jobDeadline && new Date(jobDeadline) < new Date() && jobStatus !== 'Completed' && jobStatus !== 'Rejected' && (
+            <div className="bg-red-500/5 border border-red-500/30 rounded-sm p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-red-400 uppercase tracking-widest">⏰ Deadline Passed</div>
+                  <div className="text-[10px] text-gray-500 mt-1">Unreleased milestones can be refunded to the client via Smart Contract.</div>
+                </div>
+                <button
+                  onClick={handleClaimRefund}
+                  disabled={isClaimingRefund || !milestones.some(m => m.status === 'Pending' && !m.disputeOpen)}
+                  title={milestones.some(m => m.status === 'Pending' && !m.disputeOpen) ? 'Claim unreleased milestone funds from the escrow contract' : 'No unreleased funds available to refund'}
+                  className="text-[10px] text-red-400 border border-red-500/30 bg-red-400/10 px-3 py-2 rounded-sm hover:bg-red-400/20 transition-colors uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-400/10"
+                >
+                  {isClaimingRefund ? 'CLAIMING...' : 'Claim Refund'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {Array.isArray(job.applicant) && job.applicant.length > 0 && (
             <div className="bg-gray-900/40 border border-gray-800 rounded-sm p-6 relative">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">APPLICANTS LIST</h3>
               <div className="space-y-2">
                 {job.applicant.map((app: string, idx: number) => {
-                  const payout = (job.payoutTxs || []).find((p: any) => p.address.toLowerCase() === app.toLowerCase())
+                  const payout = (job.payoutTxs || []).find((p: PayoutTx) => p.address.toLowerCase() === app.toLowerCase())
                   return (
                     <div key={idx} className="flex items-center justify-between p-3 bg-black/50 border border-gray-800 rounded-sm">
                       <div className="flex items-center gap-3">
@@ -641,7 +870,7 @@ export default function JobDetailPage() {
                             <XCircle className="w-3 h-3" /> LOST
                           </span>
                         )}
-                        {payout && (
+                        {payout?.txHash && (
                           <a 
                             href={`https://testnet.arcscan.app/tx/${payout.txHash}`} 
                             target="_blank" 
@@ -665,10 +894,10 @@ export default function JobDetailPage() {
               if (job.provider && job.provider.startsWith('{')) {
                 providerAddress2 = JSON.parse(job.provider).address;
               }
-            } catch (e) {}
+            } catch {}
 
             const isCreator = !isMockJob && (connectedWallet?.toLowerCase() === providerAddress2?.toLowerCase() || (connectedWallet && `${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`.toLowerCase() === providerAddress2?.toLowerCase()));
-            const visibleDeliverables = job.deliverables ? job.deliverables.filter((del: any) => isCreator || (connectedWallet && del.submitterWallet?.toLowerCase() === connectedWallet.toLowerCase())) : [];
+            const visibleDeliverables = job.deliverables ? job.deliverables.filter((del: Deliverable) => isCreator || (connectedWallet && del.submitterWallet?.toLowerCase() === connectedWallet.toLowerCase())) : [];
             
             if (visibleDeliverables.length === 0) return null;
             
@@ -737,9 +966,9 @@ export default function JobDetailPage() {
                     <a href={del.previewUrl} className="text-[#d4af37] hover:underline text-sm truncate">{del.previewUrl}</a>
                   </div>
                 </div>
-                <p className="text-gray-400 text-xs">Provider notes: "Completed all requirements. Code is ready for AI Validation."</p>
+                <p className="text-gray-400 text-xs">Provider notes: “Completed all requirements. Code is ready for AI Validation.”</p>
 
-                {job.ai_reports && job.ai_reports[del.submitterWallet] && (
+                {job.ai_reports && del.submitterWallet && job.ai_reports[del.submitterWallet] && (
                   <div className="mt-4 pt-4 border-t border-gray-800 text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-black/30 p-4 rounded-sm">
                     {job.ai_reports[del.submitterWallet]}
                   </div>
@@ -1076,6 +1305,44 @@ export default function JobDetailPage() {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ═══ V2: DISPUTE MODAL ═══ */}
+      {showDisputeModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gray-900 border border-orange-500/30 p-8 rounded-sm max-w-md w-full space-y-4">
+            <h3 className="text-lg font-bold text-orange-400 uppercase tracking-widest">⚠ Open Dispute</h3>
+            <p className="text-xs text-gray-400">Milestone {disputeMilestoneIdx + 1} will be frozen until the dispute is resolved by the Swarm AI Consensus.</p>
+            <textarea
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              rows={3}
+              placeholder="Describe the reason for this dispute..."
+              className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 text-sm focus:outline-none focus:border-orange-400 transition-colors resize-none"
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setShowDisputeModal(false); setDisputeReason(''); }} className="text-xs text-gray-400 border border-gray-700 px-4 py-2 rounded-sm hover:border-gray-500 transition-colors uppercase tracking-widest">
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!disputeReason.trim()) { alert('Please provide a reason.'); return; }
+                  const updated = [...milestones]
+                  updated[disputeMilestoneIdx] = { ...updated[disputeMilestoneIdx], disputeOpen: true }
+                  setMilestones(updated)
+                  const supabase = createClient()
+                  await supabase.from('nexus_jobs').update({ milestones: JSON.stringify(updated) }).eq('id', id)
+                  setShowDisputeModal(false)
+                  setDisputeReason('')
+                  alert('Dispute opened! The Swarm AI will review this milestone.')
+                }}
+                className="text-xs text-orange-400 border border-orange-500/30 bg-orange-400/10 px-4 py-2 rounded-sm hover:bg-orange-400/20 transition-colors uppercase tracking-widest"
+              >
+                Submit Dispute
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

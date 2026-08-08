@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import {
   AreaChart,
   Area,
@@ -12,24 +11,26 @@ import {
   CartesianGrid
 } from 'recharts'
 
-export function LiveTreasuryChart() {
-  const [data, setData] = useState<{ time: string; balance: number }[]>([])
+type ChartPoint = { time: string; balance: number }
 
-  // Generate initial data
-  useEffect(() => {
-    const initialData = []
-    let currentBalance = 124500
-    for (let i = 20; i >= 0; i--) {
-      const d = new Date()
-      d.setSeconds(d.getSeconds() - i * 5)
-      initialData.push({
-        time: d.toLocaleTimeString([], { hour12: false }),
-        balance: currentBalance
-      })
-      currentBalance += (Math.random() - 0.4) * 1000 // Slight upward trend
-    }
-    setData(initialData)
-  }, [])
+// Build the initial 21 points (last ~2 minutes at 5s intervals).
+function buildInitialData(): ChartPoint[] {
+  const initialData: ChartPoint[] = []
+  let currentBalance = 124500
+  for (let i = 20; i >= 0; i--) {
+    const d = new Date()
+    d.setSeconds(d.getSeconds() - i * 5)
+    initialData.push({
+      time: d.toLocaleTimeString([], { hour12: false }),
+      balance: currentBalance
+    })
+    currentBalance += (Math.random() - 0.4) * 1000 // Slight upward trend
+  }
+  return initialData
+}
+
+export function LiveTreasuryChart() {
+  const [data, setData] = useState<ChartPoint[]>(buildInitialData)
 
   // Stream new data every 5 seconds
   useEffect(() => {
@@ -83,7 +84,7 @@ export function LiveTreasuryChart() {
                 fontSize: '12px'
               }}
               itemStyle={{ color: '#d4af37' }}
-              formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Balance']}
+              formatter={(value) => [`$${Number(value ?? 0).toLocaleString()}`, 'Balance']}
             />
             <Area
               type="monotone"

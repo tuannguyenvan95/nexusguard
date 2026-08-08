@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import type { AgentType, AgentAction } from '@/types/database';
+import type { AgentType } from '@/types/database';
 
 export interface AgentContext {
   teamId: string;

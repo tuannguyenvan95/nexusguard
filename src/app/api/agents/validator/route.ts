@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validatorAgent } from '@/lib/agents/validator';
+import { getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     });
     
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { getErrorMessage } from '@/lib/utils'
 
 export async function POST(req: Request) {
   try {
@@ -61,8 +62,8 @@ export async function POST(req: Request) {
       previewUrl: previewUrl,
       messageId: info.messageId,
     })
-  } catch (error: any) {
-    console.error('Error sending email:', error)
+  } catch (error) {
+    console.error('Error sending email:', getErrorMessage(error))
     return NextResponse.json(
       { error: 'Server error while sending email' },
       { status: 500 }

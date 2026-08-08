@@ -1,4 +1,5 @@
-import { getCircleClient } from './client';
+import { getCircleClient, waitForTransaction } from './client';
+import { USDC_ADDRESS } from '../constants';
 
 export async function createTeamWalletSet(teamName: string) {
   const client = getCircleClient();
@@ -37,10 +38,24 @@ export async function getWalletBalance(walletId: string): Promise<string> {
   return usdcBalance?.amount ?? '0';
 }
 
-export async function transferUSDC(fromAddress: string, toAddress: string, amount: string) {
+/**
+ * Transfer USDC from a developer-controlled wallet to any address.
+ *
+ * Uses Circle's `createTransaction` API (source wallet identified by its
+ * wallet id — the SDK requires walletId, not a raw address). Amount is in
+ * decimal USDC units (e.g. "25.5"). Resolves once the on-chain transfer
+ * completes, returning the final tx hash.
+ */
+export async function transferUSDC(walletId: string, toAddress: string, amount: string): Promise<string> {
   const client = getCircleClient();
-  // Implementation will depend on the exact API for transfers, usually it requires walletId
-  // This is a placeholder since the exact API for token transfer isn't fully specified in the prompt
-  // In a real scenario, this would likely be a contract execution or a specific transfer endpoint.
-  throw new Error('Not implemented: transferUSDC requires fromWalletId or contract execution');
+  const res = await client.createTransaction({
+    walletId,
+    tokenAddress: USDC_ADDRESS,
+    amount: [amount],
+    destinationAddress: toAddress,
+    fee: { type: 'level', config: { feeLevel: 'MEDIUM' } },
+  });
+
+  if (!res.data?.id) throw new Error('Failed to create USDC transfer');
+  return waitForTransaction(res.data.id, 'usdc_transfer');
 }

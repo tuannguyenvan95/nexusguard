@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Mail, Shield, Send, X, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function InviteMember() {
   const [email, setEmail] = useState('');

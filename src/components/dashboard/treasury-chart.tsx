@@ -1,22 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function TreasuryChart() {
-  const [data, setData] = useState<number[]>([]);
-
-  useEffect(() => {
-    // Generate mock data: 30 days of balances
-    const mockData = Array.from({ length: 30 }, (_, i) => {
+  // Mock data: 30 days of balances — lazy init keeps Math.random out of render.
+  const [data] = useState<number[]>(() =>
+    Array.from({ length: 30 }, (_, i) => {
       // Start around 15000, trend upwards roughly to 25000
       const base = 15000 + (i * 300);
       const randomVariance = Math.floor(Math.random() * 2000) - 1000;
       return base + randomVariance;
-    });
-    setData(mockData);
-  }, []);
+    })
+  );
 
   if (data.length === 0) return null;
 

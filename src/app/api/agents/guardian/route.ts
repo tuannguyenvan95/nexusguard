@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { guardianAgent } from '@/lib/agents/guardian';
+import { getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -12,12 +13,12 @@ export async function POST(request: Request) {
 
     const result = await guardianAgent.execute({ teamId, payload: { action, ...payload } });
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: agent } = await supabase
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
       .single();
 
     return NextResponse.json({ status: agent.status, lastAction });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

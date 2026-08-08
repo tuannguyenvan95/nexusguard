@@ -1,15 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Wallet, Briefcase, Users, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsClient } from '@/hooks/useIsClient';
 
 export function StatsCards() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const stats = [
     {

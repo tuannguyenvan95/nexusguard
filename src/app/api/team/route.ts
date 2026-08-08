@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createTeamWalletSet, createWallet } from '@/lib/circle/wallets';
+import { getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     
     // Create wallet set and wallet
     const walletSet = await createTeamWalletSet(`team-${Date.now()}`);
-    const walletSetId = walletSet?.walletSet?.id || (walletSet as any)?.id;
+    const walletSetId = walletSet?.walletSet?.id ?? (walletSet as unknown as { id?: string } | undefined)?.id;
     if (!walletSetId) throw new Error('Failed to create wallet set');
     const wallet = await createWallet(walletSetId);
 
@@ -43,8 +44,8 @@ export async function POST(request: Request) {
       });
 
     return NextResponse.json(team);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     
     return NextResponse.json(team);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

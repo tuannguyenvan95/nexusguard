@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { createClient } from '@/lib/supabase/server'
+import { getErrorMessage } from '@/lib/utils'
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params
     if (!id) return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
 
+    const supabase = await createClient()
     const { error } = await supabase.from('nexus_jobs').delete().eq('id', id)
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Failed to delete job:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }
 
@@ -38,6 +36,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       agent: body.agent
     }
 
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('nexus_jobs')
       .update(updates)
@@ -48,8 +47,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (error) throw error
 
     return NextResponse.json({ success: true, job: data })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Failed to update job:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }

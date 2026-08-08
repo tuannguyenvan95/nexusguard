@@ -29,6 +29,16 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 
+/** Extract a readable message from an unknown error value (e.g. catch blocks). */
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return 'Unknown error';
+}
+
 /** Generate invoice number INV-YYYYMMDD-XXXX */
 export function generateInvoiceNumber(): string {
   const date = new Date();

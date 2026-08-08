@@ -2,6 +2,8 @@ import { TopHeader } from '@/components/layout/TopHeader'
 import { BlueprintNav } from '@/components/layout/BlueprintNav'
 import { Footer } from '@/components/layout/Footer'
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardLayout({
   children,
 }: {

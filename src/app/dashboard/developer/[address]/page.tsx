@@ -1,24 +1,26 @@
 'use client'
 
+import { useState } from 'react'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ShieldCheck, Cpu, Code2, Users, Briefcase, Activity, Trophy, Medal } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, ShieldCheck, Code2, Trophy } from 'lucide-react'
 
 export default function DeveloperProfilePage() {
   const router = useRouter()
   const params = useParams()
   const devName = decodeURIComponent(params.address as string)
   
-  // Mock data for the demo
-  const devInfo = {
+  // Mock data for the demo — generated once via lazy state init so it stays
+  // stable across re-renders (Math.random() during render would change every time).
+  const [devInfo] = useState(() => ({
     name: devName,
     avatar: `https://i.pravatar.cc/150?u=${devName.toLowerCase()}`,
-    wallet: '0x' + Math.random().toString(16).substr(2, 8) + '...' + Math.random().toString(16).substr(2, 4),
+    wallet: '0x' + Math.random().toString(16).substring(2, 10) + '...' + Math.random().toString(16).substring(2, 6),
     completed: Math.floor(Math.random() * 20) + 1,
     earned: (Math.random() * 50000 + 1000).toLocaleString('en-US', { maximumFractionDigits: 0 }),
     successRate: Math.floor(Math.random() * 15) + 85,
     badge: 'ELITE'
-  }
+  }))
 
   const mockJobs = [
     { id: 1, title: 'Smart Contract Audit for DeFi Protocol', amount: '5,000 USDC', status: 'Completed', date: '2 days ago' },
@@ -43,8 +45,8 @@ export default function DeveloperProfilePage() {
             <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-purple-400/50" />
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-purple-400/50" />
             
-            <div className="w-24 h-24 mx-auto bg-gray-800 rounded-full mb-4 border-2 border-purple-400/50 overflow-hidden">
-              <img src={devInfo.avatar} alt={devInfo.name} className="w-full h-full object-cover" />
+            <div className="relative w-24 h-24 mx-auto bg-gray-800 rounded-full mb-4 border-2 border-purple-400/50 overflow-hidden">
+              <Image src={devInfo.avatar} alt={devInfo.name} fill sizes="96px" className="object-cover" />
             </div>
             
             <h1 className="text-2xl font-space-grotesk font-bold text-white uppercase flex items-center justify-center gap-2 mb-1">

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createTeamWalletSet, createWallet, getWalletBalance } from '@/lib/circle/wallets';
 import { createClient } from '@/lib/supabase/server';
+import { getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
 
     if (type === 'team') {
       const walletSet = await createTeamWalletSet(teamId);
-      const walletSetId = walletSet?.walletSet?.id || (walletSet as any)?.id;
+      const walletSetId = walletSet?.walletSet?.id ?? (walletSet as unknown as { id?: string } | undefined)?.id;
       if (!walletSetId) throw new Error('Failed to create wallet set');
       const wallet = await createWallet(walletSetId);
       
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
 
     const balance = await getWalletBalance(walletId);
     return NextResponse.json({ balance });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

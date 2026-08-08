@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { escrowAgent } from '@/lib/agents/escrow';
+import { getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
 
     const result = await escrowAgent.execute({ teamId, jobId, payload: { action, ...payload } });
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

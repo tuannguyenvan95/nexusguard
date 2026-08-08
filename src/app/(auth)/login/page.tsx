@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeNextPath } from '@/lib/auth'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +29,9 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      // Land back where the user was headed before the auth redirect,
+      // falling back to the dashboard when no safe `next` param exists.
+      router.push(sanitizeNextPath(searchParams.get('next')) ?? '/dashboard')
     }
   }
 
@@ -81,11 +85,21 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-gray-400 text-sm">
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
           Sign up
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  // useSearchParams must sit under a Suspense boundary for the production
+  // build (see Next.js docs: missing-suspense-with-csr-bailout).
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

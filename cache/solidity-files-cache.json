@@ -187,6 +187,45 @@
       "artifacts": [
         "StorageSlot"
       ]
+    },
+    "C:\\Users\\Admin\\Documents\\arc\\arc mainet\\nexusGuard\\contracts\\NexusGuardEscrowV2.sol": {
+      "lastModificationDate": 1785920168271,
+      "contentHash": "e67397d764b3d5963585f452e1725010",
+      "sourceName": "contracts/NexusGuardEscrowV2.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "NexusGuardEscrowV2"
+      ]
     }
   }
 }

@@ -1,27 +1,59 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ethers } from 'ethers'
 import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessage } from '@/lib/utils'
+import { getEthereumProvider } from '@/lib/ethereum'
+import { validateMilestones, calculateMilestoneAmounts, addMilestone, removeMilestone, MAX_MILESTONES } from '@/lib/jobs'
+import { ESCROW_V2_ADDRESS } from '@/lib/constants'
+
+interface AgentNode {
+  id: string;
+  name: string;
+  desc: string;
+  req: boolean;
+  color: string;
+  bg: string;
+  border: string;
+}
 
 export default function CreateJobPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const defaultNodes = [
+  const defaultNodes: AgentNode[] = [
     { id: 'escrow', name: 'Escrow', desc: 'Smart Contract Mgmt', req: true, color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-400/30' },
     { id: 'validator', name: 'Validator', desc: 'Deliverable QA', req: true, color: 'text-purple-400', bg: 'bg-purple-400', border: 'border-purple-400/30' },
     { id: 'compliance', name: 'Compliance', desc: 'Tax & Regulatory', req: false, color: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/30' },
     { id: 'treasury', name: 'Treasury', desc: 'Fund Disbursement', req: false, color: 'text-[#d4af37]', bg: 'bg-[#d4af37]', border: 'border-[#d4af37]/30' },
     { id: 'guardian', name: 'Guardian', desc: 'Fraud Detection', req: false, color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-400/30' },
   ]
-  const [availableNodes, setAvailableNodes] = useState<any[]>(defaultNodes)
+  // Load saved custom agents once (lazy init) so we don't setState inside an effect.
+  const [availableNodes] = useState<AgentNode[]>(() => {
+    if (typeof window === 'undefined') return defaultNodes;
+    try {
+      const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
+      return [...defaultNodes, ...custom]
+    } catch {
+      return defaultNodes
+    }
+  })
   
+
+  const [milestones, setMilestones] = useState([{ name: 'Final Delivery', percent: 100 }])
+
+  const handleAddMilestone = () => {
+    setMilestones(prev => addMilestone(prev))
+  }
+
+  const handleRemoveMilestone = (idx: number) => {
+    setMilestones(prev => removeMilestone(prev, idx))
+  }
 
   const [formData, setFormData] = useState<{
     title: string,
@@ -51,26 +83,19 @@ export default function CreateJobPage() {
     }
   })
 
-  useEffect(() => {
-    const custom = JSON.parse(localStorage.getItem('nexusguard_custom_agents') || '[]')
-    if (custom.length > 0) {
-      setAvailableNodes(prev => [...prev, ...custom])
-    }
-  }, [])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     
     try {
-      const { ethereum } = window as any;
+      const ethereum = getEthereumProvider();
       if (!ethereum) {
         alert("Vui lòng cài đặt và kết nối ví MetaMask trước để gọi Smart Contract!");
         setIsSubmitting(false)
         return;
       }
       
-      const accounts = await ethereum.request({ method: 'eth_accounts' });
+      const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[];
       if (!accounts || accounts.length === 0) {
         alert("Vui lòng kết nối ví để tạo Escrow Contract!");
         setIsSubmitting(false)
@@ -87,20 +112,38 @@ export default function CreateJobPage() {
           return;
         }
         // Convert budget to Wei (10^18)
-        txValue = ethers.parseUnits(formData.budget, 18).toString(16); // Convert BigInt to Hex
+        txValue = ethers.parseUnits(formData.budget, 18).toString(16);
         txValue = '0x' + txValue;
       }
       
-      const jobId = `job_${Math.floor(Math.random() * 90000 + 10000)}`;
+      // Validate milestones sum to 100 (with float tolerance)
+      const milestoneCheck = validateMilestones(milestones)
+      if (!milestoneCheck.valid) {
+        alert(`Tổng % milestone phải bằng 100! (${milestoneCheck.error})`);
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Encode real Smart Contract call data
-      const escrowAbi = ["function createJob(string calldata jobId) external payable"];
-      const iface = new ethers.Interface(escrowAbi);
-      const dataPayload = iface.encodeFunctionData("createJob", [jobId]);
+      // Validate deadline
+      if (!formData.deadline) {
+        alert("Vui lòng chọn deadline cho Job!");
+        setIsSubmitting(false);
+        return;
+      }
+      const deadlineTimestamp = Math.floor(new Date(formData.deadline).getTime() / 1000);
       
-      const contractAddress = '0xECF383892b85CA8e8977f175137567E5bDa02FF0';
+      const jobId = `job_${Math.floor(Math.random() * 90000 + 10000)}`;
+      const milestonePercentages = milestones.map(ms => ms.percent);
 
-      // Send the transaction to the real contract
+      // Encode V2 Smart Contract call data
+      const escrowAbiV2 = ["function createJob(string calldata jobId, uint256 milestoneCount, uint256[] calldata milestonePercentages, uint256 deadline) external payable"];
+      const iface = new ethers.Interface(escrowAbiV2);
+      const dataPayload = iface.encodeFunctionData("createJob", [jobId, milestones.length, milestonePercentages, deadlineTimestamp]);
+      
+      // V2 Contract Address (shared constant — update in one place)
+      const contractAddress = ESCROW_V2_ADDRESS;
+
+      // Send the transaction to the V2 contract
       const txHash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [
@@ -131,9 +174,18 @@ export default function CreateJobPage() {
       });
 
       const activeNodes = Object.entries(formData.nodes)
-        .filter(([_, isActive]) => isActive)
-        .map(([id, _]) => id.charAt(0).toUpperCase() + id.slice(1))
+        .filter(([, isActive]) => isActive)
+        .map(([id]) => id.charAt(0).toUpperCase() + id.slice(1))
         .join(', ');
+
+      // Build milestone data for DB storage
+      const budgetNum = Number(formData.budget)
+      const milestoneData = calculateMilestoneAmounts(budgetNum, milestones, formData.currency).map((ms) => ({
+        ...ms,
+        status: 'Pending',
+        disputeOpen: false,
+        disputeResult: 'None'
+      }))
 
       const newJob = {
         id: jobId,
@@ -146,7 +198,9 @@ export default function CreateJobPage() {
         description: formData.description || 'Automated escrow task initialized via on-chain contract.',
         requirements: formData.requirements.split(',').map(r => r.trim()).filter(Boolean),
         payouttype: formData.payoutType,
-        maxwinners: formData.maxWinners
+        maxwinners: formData.maxWinners,
+        milestones: JSON.stringify(milestoneData),
+        deadline: formData.deadline
       }
 
       const { error: dbError } = await supabase.from('nexus_jobs').insert([newJob])
@@ -159,17 +213,19 @@ export default function CreateJobPage() {
         router.push('/dashboard/jobs')
       }
       
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      if (error.code === 4001) {
+      if ((error as { code?: number }).code === 4001) {
         alert("Bạn đã từ chối giao dịch ký quỹ Escrow.");
       } else {
-        alert(`Lỗi: ${error.message}`);
+        alert(`Lỗi: ${getErrorMessage(error)}`);
       }
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const milestonesValid = validateMilestones(milestones).valid
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -262,6 +318,72 @@ export default function CreateJobPage() {
                 className="w-full bg-black/50 border border-gray-700 rounded-sm px-4 py-2.5 text-gray-200 font-mono text-sm focus:outline-none focus:border-[#d4af37] transition-colors"
                 disabled={formData.payoutType === 'winner_takes_all'}
               />
+            </div>
+          </div>
+
+          {/* ═══ MILESTONE BUILDER V2 ═══ */}
+          <div className="space-y-4 border border-[#d4af37]/20 rounded-sm p-4 bg-[#d4af37]/5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-mono text-[#d4af37] uppercase tracking-widest font-bold">⚡ Payment Milestones (V2)</label>
+              <button 
+                type="button"
+                onClick={handleAddMilestone}
+                disabled={milestones.length >= MAX_MILESTONES}
+                className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-400/10 px-2 py-1 rounded-sm hover:bg-emerald-400/20 transition-colors uppercase tracking-widest disabled:opacity-30"
+              >
+                + Add Phase
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-500 font-mono">Split payment into milestones. Freelancer gets paid as each phase is completed.</p>
+            <div className="space-y-2">
+              {milestones.map((ms, idx) => (
+                <div key={idx} className="flex items-center gap-3 group">
+                  <div className="w-6 h-6 rounded-full border border-[#d4af37]/40 bg-black flex items-center justify-center text-[10px] font-mono text-[#d4af37] font-bold">{idx + 1}</div>
+                  <input
+                    type="text"
+                    value={ms.name}
+                    onChange={(e) => {
+                      const updated = [...milestones]
+                      updated[idx] = { ...updated[idx], name: e.target.value }
+                      setMilestones(updated)
+                    }}
+                    className="flex-1 bg-black/50 border border-gray-700 rounded-sm px-3 py-2 text-gray-200 font-mono text-xs focus:outline-none focus:border-[#d4af37] transition-colors"
+                    placeholder={`Phase ${idx + 1} name`}
+                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={ms.percent}
+                      onChange={(e) => {
+                        const updated = [...milestones]
+                        updated[idx] = { ...updated[idx], percent: Math.max(1, Math.min(100, Number(e.target.value))) }
+                        setMilestones(updated)
+                      }}
+                      className="w-16 bg-black/50 border border-gray-700 rounded-sm px-2 py-2 text-[#d4af37] font-mono text-xs text-center focus:outline-none focus:border-[#d4af37] transition-colors"
+                      min="1" max="100"
+                    />
+                    <span className="text-[10px] text-gray-500 font-mono">%</span>
+                  </div>
+                  {milestones.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMilestone(idx)}
+                      className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Total indicator */}
+            <div className={`flex justify-between items-center text-[10px] font-mono px-2 py-1.5 rounded-sm border ${
+              milestonesValid
+                ? 'border-emerald-500/30 bg-emerald-400/10 text-emerald-400' 
+                : 'border-red-500/30 bg-red-400/10 text-red-400'
+            }`}>
+              <span>Total</span>
+              <span className="font-bold">{milestones.reduce((s, m) => s + m.percent, 0)}% {milestonesValid ? '✓' : '(must be 100%)'}</span>
             </div>
           </div>
 

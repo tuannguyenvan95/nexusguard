@@ -1,10 +1,15 @@
 import { type Address } from 'viem';
 
-export const USDC_ADDRESS = '0x1234567890123456789012345678901234567890' as Address;
+// Native USDC on Arc Testnet (used by the treasury page / MetaMask flows too).
+export const USDC_ADDRESS = '0x3600000000000000000000000000000000000000' as Address;
 export const IDENTITY_REGISTRY_ADDRESS = '0x2345678901234567890123456789012345678901' as Address;
 export const REPUTATION_REGISTRY_ADDRESS = '0x3456789012345678901234567890123456789012' as Address;
 export const VALIDATION_REGISTRY_ADDRESS = '0x4567890123456789012345678901234567890123' as Address;
 export const AGENTIC_COMMERCE_ADDRESS = '0x5678901234567890123456789012345678901234' as Address;
+
+// NexusGuard Escrow V2 (milestones + deadline auto-refund). Mirrors the address
+// used by the create-job flow and the /api/evaluate route — keep them in sync.
+export const ESCROW_V2_ADDRESS = '0xECF383892b85CA8e8977f175137567E5bDa02FF0' as Address;
 
 export enum JobStatusEnum {
   Open = 0,

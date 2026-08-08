@@ -6,16 +6,41 @@ import { Loader2, RefreshCw, Terminal, Droplet, Activity } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessage } from '@/lib/utils'
+import { getEthereumProvider } from '@/lib/ethereum'
+
+interface LedgerTx {
+  hash: string;
+  timeStamp: number;
+  to: string;
+  from: string;
+  value: bigint;
+  isSend: boolean;
+  isReceive: boolean;
+  details: string;
+}
+
+interface JobRow {
+  id: string;
+  title?: string;
+  amount?: string;
+  status?: string;
+  provider?: string | null;
+  created_at?: string;
+  payoutTxs?: Array<{ address?: string; txHash?: string; timestamp?: string; amount?: number | string }>;
+  [key: string]: unknown;
+}
 
 export default function TreasuryPage() {
   const [balance, setBalance] = useState<string>('Loading...')
   const [selectedJobId, setSelectedJobId] = useState('')
-  const [createdJobs, setCreatedJobs] = useState<any[]>([])
+  const [createdJobs, setCreatedJobs] = useState<JobRow[]>([])
   const [amount, setAmount] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [transactions, setTransactions] = useState<any[]>([])
-  const [chartData, setChartData] = useState<any[]>([])
-  const [userAddress, setUserAddress] = useState<string>('')
+  const [teamId, setTeamId] = useState('')
+  const [treasuryWalletId, setTreasuryWalletId] = useState('')
+  const [transactions, setTransactions] = useState<LedgerTx[]>([])
+  const [chartData, setChartData] = useState<{ name: string; balance: number }[]>([])
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
   const [agentLogs, setAgentLogs] = useState<string[]>([
     '> [TREASURY_AGENT] Monitoring Arc DeFi yields...',
@@ -42,6 +67,20 @@ export default function TreasuryPage() {
     const fetchJobs = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+
+      // Resolve the user's team → Circle treasury wallet (funds Circle-based deposits)
+      if (user) {
+        const { data: ownedTeams } = await supabase
+          .from('teams')
+          .select('id, treasury_wallet_id')
+          .eq('owner_id', user.id)
+          .limit(1)
+        if (ownedTeams && ownedTeams.length > 0) {
+          setTeamId(ownedTeams[0].id)
+          setTreasuryWalletId(ownedTeams[0].treasury_wallet_id || '')
+        }
+      }
+
       const { data } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })
       
       if (data) {
@@ -52,12 +91,12 @@ export default function TreasuryPage() {
         
         if (providerName) {
            // Filter jobs that belong to this user (by name)
-           const myJobs = data.filter(job => {
+           const myJobs = data.filter((job: JobRow) => {
              if (!job.provider) return false;
              try {
                const pData = JSON.parse(job.provider);
                return pData.name === providerName;
-             } catch (e) {
+             } catch {
                return job.provider === providerName;
              }
            });
@@ -77,12 +116,12 @@ export default function TreasuryPage() {
       const supabase = createClient()
       const { data } = await supabase.from('nexus_jobs').select('*')
       if (data) {
-        let txs: any[] = [];
-        data.forEach((job: any) => {
+        const txs: LedgerTx[] = [];
+        data.forEach((job: JobRow) => {
           let pAddress = job.provider;
           try {
             if (pAddress && pAddress.startsWith('{')) pAddress = JSON.parse(pAddress).address;
-          } catch(e){}
+          } catch {}
           
           const jobValue = job.amount ? job.amount.replace(/[^\d.]/g, '') : '0'
 
@@ -90,7 +129,7 @@ export default function TreasuryPage() {
           if (pAddress?.toLowerCase() === address.toLowerCase() && (job.status === 'Funded' || job.status === 'In Progress' || job.status === 'Completed')) {
             txs.push({
               hash: `JOB_${job.id}`,
-              timeStamp: new Date(job.created_at).getTime() / 1000,
+              timeStamp: new Date(job.created_at || '').getTime() / 1000,
               to: 'Escrow Contract',
               from: address,
               value: ethers.parseEther(jobValue),
@@ -102,11 +141,11 @@ export default function TreasuryPage() {
 
           // Inbound: Received payout
           if (job.payoutTxs && Array.isArray(job.payoutTxs)) {
-            job.payoutTxs.forEach((p: any) => {
+            job.payoutTxs.forEach((p) => {
               if (p.address?.toLowerCase() === address.toLowerCase()) {
                 txs.push({
                   hash: p.txHash || `PAYOUT_${job.id}`,
-                  timeStamp: new Date(p.timestamp || job.created_at).getTime() / 1000,
+                  timeStamp: new Date(p.timestamp || job.created_at || '').getTime() / 1000,
                   from: 'Escrow Contract',
                   to: address,
                   value: ethers.parseEther(p.amount ? p.amount.toString() : '0'),
@@ -150,12 +189,12 @@ export default function TreasuryPage() {
   const fetchBalance = async (autoSwitch = false) => {
     try {
       setBalance('Updating...')
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const ethereum = (window as any).ethereum
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+      const ethereum = getEthereumProvider();
+      if (ethereum) {
+        const accounts = (await ethereum.request({ method: 'eth_requestAccounts' })) as string[]
         
         if (accounts.length > 0) {
-          const chainId = await ethereum.request({ method: 'eth_chainId' })
+          const chainId = (await ethereum.request({ method: 'eth_chainId' })) as string
           if (chainId.toLowerCase() !== '0x4cef52') {
             setBalance('WRONG NETWORK')
             if (autoSwitch) {
@@ -164,8 +203,8 @@ export default function TreasuryPage() {
                   method: 'wallet_switchEthereumChain',
                   params: [{ chainId: '0x4cef52' }],
                 })
-              } catch (switchError: any) {
-                if (switchError.code === 4902) {
+              } catch (switchError) {
+                if ((switchError as { code?: number }).code === 4902) {
                   try {
                     await ethereum.request({
                       method: 'wallet_addEthereumChain',
@@ -186,12 +225,11 @@ export default function TreasuryPage() {
             return
           }
 
-          const provider = new ethers.BrowserProvider(ethereum)
+          const provider = new ethers.BrowserProvider(ethereum as unknown as ethers.Eip1193Provider)
           const rawBalance = await provider.getBalance(accounts[0]);
           const formatted = ethers.formatEther(rawBalance)
           const numFormatted = parseFloat(formatted)
           setBalance(numFormatted.toFixed(4) + ' USDC')
-          setUserAddress(accounts[0])
           fetchTransactions(accounts[0], numFormatted)
         }
       } else {
@@ -207,19 +245,19 @@ export default function TreasuryPage() {
   useEffect(() => {
     fetchBalance(false)
 
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      const eth = (window as any).ethereum;
-      eth.on('accountsChanged', () => fetchBalance(false));
-      eth.on('chainChanged', () => fetchBalance(false));
-    }
+    const ethereum = getEthereumProvider();
+    if (!ethereum) return;
+
+    const onAccountsChanged = () => fetchBalance(false);
+    const onChainChanged = () => fetchBalance(false);
+    ethereum.on('accountsChanged', onAccountsChanged);
+    ethereum.on('chainChanged', onChainChanged);
 
     return () => {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const eth = (window as any).ethereum;
-        eth.removeListener('accountsChanged', () => fetchBalance(false));
-        eth.removeListener('chainChanged', () => fetchBalance(false));
-      }
-    }
+      ethereum.removeListener('accountsChanged', onAccountsChanged);
+      ethereum.removeListener('chainChanged', onChainChanged);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleJobSelect = (jobId: string) => {
@@ -242,58 +280,43 @@ export default function TreasuryPage() {
     setTerminalOutput(['[SYS] Initiating secure transaction protocol...'])
     
     try {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        setTimeout(() => setTerminalOutput(prev => [...prev, '[AUTH] Connecting to Web3 Provider...']), 500)
-        const ethereum = (window as any).ethereum
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-        const from = accounts[0]
-        
-        setTimeout(() => setTerminalOutput(prev => [...prev, '[NET] Signing transaction with private key...']), 1000)
-        const provider = new ethers.BrowserProvider(ethereum)
-        const signer = await provider.getSigner()
-        
-        const usdcAddress = "0x3600000000000000000000000000000000000000";
-        const usdcAbi = [{
-          "constant": false,
-          "inputs": [
-            { "name": "_to", "type": "address" },
-            { "name": "_value", "type": "uint256" }
-          ],
-          "name": "transfer",
-          "outputs": [{ "name": "", "type": "bool" }],
-          "type": "function"
-        }];
-        const contract = new ethers.Contract(usdcAddress, usdcAbi, signer);
-
-        // USDC uses 6 decimals
-        const txAmount = ethers.parseUnits(amount, 6)
-        
-        // Use a dummy Escrow contract address as the recipient
-        const escrowAddress = '0x0000000000000000000000000000000000008183'
-        const tx = await contract.transfer(escrowAddress, txAmount)
-        setTerminalOutput(prev => [...prev, `[MEMPOOL] Tx Broadcasted: ${tx.hash.slice(0, 10)}...`])
-        setTerminalOutput(prev => [...prev, '[SYS] Awaiting block confirmation...'])
-        
-        await tx.wait() // wait for confirmation
-        
-        setTerminalOutput(prev => [...prev, '[SUCCESS] Transaction confirmed! Protocol complete.'])
-        alert(`Đã nạp tiền vào Escrow thành công!\nTxHash: ${tx.hash}`)
-        setSelectedJobId('')
-        setAmount('')
-        fetchBalance() // auto refresh after sending
-      } else {
-        setTerminalOutput(prev => [...prev, '[ERROR] Web3 Provider (MetaMask) not found.'])
-        alert("Vui lòng cài đặt ví Web3 (MetaMask)!")
+      if (!teamId || !treasuryWalletId) {
+        setTerminalOutput(prev => [...prev, '[FAIL] No Circle treasury wallet configured.'])
+        alert("Chưa cấu hình ví Treasury Circle. Hãy tạo team wallet trước.")
+        return
       }
-    } catch (error: any) {
+
+      setTerminalOutput(prev => [...prev, '[AUTH] Resolving Circle treasury wallet...'])
+      setTerminalOutput(prev => [...prev, '[NET] Signing transaction with Circle Developer Wallet...'])
+
+      // Deposit from the team's Circle treasury wallet into the escrow contract.
+      const escrowAddress = '0x0000000000000000000000000000000000008183'
+      const res = await fetch('/api/wallets/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId, toAddress: escrowAddress, amount }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        setTerminalOutput(prev => [...prev, `[FAIL] ${data.error || 'Transfer failed'}`])
+        alert('Giao dịch thất bại: ' + (data.error || 'Lỗi không xác định'))
+        return
+      }
+
+      setTerminalOutput(prev => [...prev, `[MEMPOOL] Tx Broadcasted: ${data.txHash.slice(0, 10)}...`])
+      setTerminalOutput(prev => [...prev, '[SYS] Awaiting block confirmation...'])
+      setTerminalOutput(prev => [...prev, '[SUCCESS] Transaction confirmed! Protocol complete.'])
+      alert(`Đã nạp tiền vào Escrow thành công!\nTxHash: ${data.txHash}`)
+      setSelectedJobId('')
+      setAmount('')
+    } catch (error) {
       console.error(error)
-      setTerminalOutput(prev => [...prev, `[FAIL] ${error.message || 'Unknown Error'}`])
-      alert("Giao dịch thất bại: " + (error.message || "Lỗi không xác định"))
+      setTerminalOutput(prev => [...prev, `[FAIL] ${getErrorMessage(error)}`])
+      alert("Giao dịch thất bại: " + getErrorMessage(error))
     } finally {
-      setTimeout(() => {
-        setIsSending(false)
-        setTerminalOutput([])
-      }, 4000)
+      setIsSending(false)
+      setTimeout(() => setTerminalOutput([]), 5000)
     }
   }
 
@@ -406,6 +429,18 @@ export default function TreasuryPage() {
                 )}
               </button>
             </form>
+
+            {/* Funding source indicator */}
+            <div className="mt-4 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest border-t border-gray-800/50 pt-3">
+              <span className="text-gray-500 flex items-center gap-1.5">
+                <Activity className="w-3 h-3" /> Funding Source
+              </span>
+              {treasuryWalletId ? (
+                <span className="text-emerald-400">Circle Treasury Wallet ✓</span>
+              ) : (
+                <span className="text-yellow-500">No Circle wallet — create a team first</span>
+              )}
+            </div>
 
             {/* Terminal Output Simulation */}
             {terminalOutput.length > 0 && (

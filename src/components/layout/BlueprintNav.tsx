@@ -14,6 +14,7 @@ export function BlueprintNav() {
     { name: 'Leaderboard', path: '/dashboard/leaderboard' },
     { name: 'Treasury', path: '/dashboard/treasury' },
     { name: 'Agents', path: '/dashboard/agents' },
+    { name: 'Monitor', path: '/dashboard/monitoring' },
     { name: 'Compliance', path: '/dashboard/compliance' }
   ]
 

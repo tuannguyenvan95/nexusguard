@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import { LiveTreasuryChart } from '@/components/dashboard/LiveTreasuryChart'
+import { getErrorMessage } from '@/lib/utils'
+import { getEthereumProvider } from '@/lib/ethereum'
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -23,12 +25,6 @@ const itemVariants: Variants = {
 export default function DashboardPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   
-  // Deposit Modal State
-  const [showDepositModal, setShowDepositModal] = useState(false)
-  const [depositAmount, setDepositAmount] = useState('100')
-  const [depositToken, setDepositToken] = useState('ARC')
-  const [depositJob, setDepositJob] = useState('JOB_#1041')
-  
   const agentDetails = {
     'Escrow': { model: 'GPT-4o', status: 'SYNCED', gas: '124.5 Gwei', success: '99.99%', tasks: 124 },
     'Validation': { model: 'Claude 3.5 Sonnet', status: 'ACTIVE', gas: '45.2 Gwei', success: '99.85%', tasks: 89 },
@@ -36,36 +32,6 @@ export default function DashboardPage() {
     'Payment': { model: 'Arc Native Oracle', status: 'ACTIVE', gas: '8.4 Gwei', success: '100%', tasks: 210 },
     'Risk': { model: 'Llama 3 70B', status: 'ANALYZING', gas: '245.8 Gwei', success: '98.50%', tasks: 12 },
   }
-
-  const [userAddress, setUserAddress] = useState<string>('0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7')
-
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-          if (accounts && accounts.length > 0) {
-            setUserAddress(accounts[0]);
-          }
-        } catch (err) {}
-      }
-    };
-    fetchAddress();
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length > 0) setUserAddress(accounts[0]);
-    };
-
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      (window as any).ethereum.on('accountsChanged', handleAccountsChanged);
-    }
-    
-    return () => {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        (window as any).ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      }
-    }
-  }, []);
 
   return (
     <motion.div 
@@ -83,12 +49,12 @@ export default function DashboardPage() {
           <button 
             onClick={async () => {
               try {
-                const { ethereum } = window as any;
+                const ethereum = getEthereumProvider();
                 if (!ethereum) {
                   alert("Vui lòng cài đặt và kết nối ví MetaMask trước!");
                   return;
                 }
-                const accounts = await ethereum.request({ method: 'eth_accounts' });
+                const accounts = (await ethereum.request({ method: 'eth_accounts' })) as string[];
                 if (!accounts || accounts.length === 0) {
                   alert("Vui lòng kết nối ví ở góc trên bên phải trước khi Test!");
                   return;
@@ -100,18 +66,18 @@ export default function DashboardPage() {
                 // Chuyển string sang hex để ký
                 const msgHex = '0x' + Buffer.from(msg, 'utf8').toString('hex');
                 
-                const signature = await ethereum.request({
+                const signature = (await ethereum.request({
                   method: 'personal_sign',
                   params: [msgHex, from],
-                });
+                })) as string;
                 
                 alert(`Mạng Arc Testnet phản hồi:\nKý xác nhận thành công!\nChữ ký Hash: ${signature.substring(0, 25)}...`);
-              } catch (error: any) {
+              } catch (error) {
                 console.error(error);
-                if (error.code === 4001) {
+                if ((error as { code?: number }).code === 4001) {
                   alert("Bạn đã từ chối ký giao dịch.");
                 } else {
-                  alert(`Lỗi: ${error.message}`);
+                  alert(`Lỗi: ${getErrorMessage(error)}`);
                 }
               }
             }}

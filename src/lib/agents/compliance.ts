@@ -115,8 +115,8 @@ export class ComplianceAgent extends BaseAgent {
     if (!invoices) return { success: true, message: 'No invoices found', data: { summary: {} } };
 
     // 2. Calculate totals by jurisdiction
-    const summary = invoices.reduce((acc: any, inv: any) => {
-      const jur = inv.jurisdiction;
+    const summary = invoices.reduce<Record<string, { totalRevenue: number; totalTax: number; count: number }>>((acc, inv) => {
+      const jur = String(inv.jurisdiction);
       if (!acc[jur]) {
         acc[jur] = { totalRevenue: 0, totalTax: 0, count: 0 };
       }

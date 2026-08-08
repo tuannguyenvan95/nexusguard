@@ -2,8 +2,31 @@
 
 import { Shield, BrainCircuit, Activity, Clock, Terminal, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { BlueprintDropdown } from '@/components/ui/BlueprintDropdown'
 import Link from 'next/link'
+
+interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  score: number;
+  avatar: string;
+  avatarUrl: string;
+  status: string;
+  wallet: string;
+  agent: string;
+  earned: string;
+}
+
+interface NanoLedgerEntry {
+  id: string;
+  from: string;
+  to: string;
+  amount: string;
+  reason: string;
+}
 
 export default function TeamPage() {
   const [email, setEmail] = useState('')
@@ -11,11 +34,11 @@ export default function TeamPage() {
   const [isInviting, setIsInviting] = useState(false)
 
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
-  const [selectedMember, setSelectedMember] = useState<any>(null)
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [isEditingRole, setIsEditingRole] = useState(false)
   const [editMemberRole, setEditMemberRole] = useState('')
 
-  const [mockMembers, setMockMembers] = useState<any[]>([
+  const [mockMembers, setMockMembers] = useState<TeamMember[]>([
     { id: 1, name: 'Alex Rivera', email: 'alex@acme.network', role: 'Admin', score: 98, avatar: 'A', avatarUrl: 'https://i.pravatar.cc/150?img=11', status: 'ACTIVE', wallet: '0x71C...3B9E', agent: 'GUARDIAN NODE', earned: '12,500 USDC' },
     { id: 2, name: 'Sam Chen', email: 'sam@acme.network', role: 'Developer', score: 92, avatar: 'S', avatarUrl: 'https://i.pravatar.cc/150?img=12', status: 'SYNCING', wallet: '0x4F2...9A1B', agent: 'VALIDATION NODE', earned: '4,200 USDC' },
     { id: 3, name: 'Taylor Swift', email: 'taylor@acme.network', role: 'Designer', score: 88, avatar: 'T', avatarUrl: 'https://i.pravatar.cc/150?img=5', status: 'OFFLINE', wallet: '0x9E1...4C2D', agent: 'STRATEGY NODE', earned: '1,800 USDC' },
@@ -25,7 +48,7 @@ export default function TeamPage() {
   const [previewLink, setPreviewLink] = useState<string | null>(null)
   
   // M2M Ledger State
-  const [nanoLedger, setNanoLedger] = useState<any[]>([
+  const [nanoLedger, setNanoLedger] = useState<NanoLedgerEntry[]>([
     { id: 'tx_1', from: 'VALIDATOR NODE', to: 'COMPLIANCE NODE', amount: '0.005 USDC', reason: 'Risk Analysis Data' },
     { id: 'tx_2', from: 'ESCROW NODE', to: 'VALIDATOR NODE', amount: '0.002 USDC', reason: 'PR Validation Check' },
     { id: 'tx_3', from: 'STRATEGY NODE', to: 'GUARDIAN NODE', amount: '0.010 USDC', reason: 'Anomaly Security Scan' },
@@ -76,6 +99,7 @@ export default function TeamPage() {
           setMockMembers([...mockMembers, {
             id: Date.now(),
             name: 'Pending Invite...',
+            avatarUrl: '',
             email: email,
             role: role,
             score: 0,
@@ -97,7 +121,7 @@ export default function TeamPage() {
         setIsInviting(false)
         setTerminalOutput([])
       }
-    } catch (err) {
+    } catch {
       alert("Server connection error.")
       setIsInviting(false)
       setTerminalOutput([])
@@ -266,9 +290,9 @@ export default function TeamPage() {
 
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 border border-gray-700 bg-black/50 flex items-center justify-center text-xl font-space-grotesk font-bold text-gray-300 group-hover:border-[#d4af37] group-hover:text-[#d4af37] transition-colors relative">
+                <div className="relative w-12 h-12 border border-gray-700 bg-black/50 flex items-center justify-center text-xl font-space-grotesk font-bold text-gray-300 group-hover:border-[#d4af37] group-hover:text-[#d4af37] transition-colors">
                   {member.avatarUrl ? (
-                    <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                    <Image src={member.avatarUrl} alt={member.name} fill sizes="48px" className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                   ) : (
                     member.avatar
                   )}
@@ -331,9 +355,9 @@ export default function TeamPage() {
             </button>
             
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-800">
-              <div className="w-16 h-16 border border-[#d4af37] bg-[#d4af37]/10 flex items-center justify-center text-2xl font-space-grotesk font-bold text-[#d4af37]">
+              <div className="relative w-16 h-16 border border-[#d4af37] bg-[#d4af37]/10 flex items-center justify-center text-2xl font-space-grotesk font-bold text-[#d4af37]">
                 {selectedMember.avatarUrl ? (
-                  <img src={selectedMember.avatarUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
+                  <Image src={selectedMember.avatarUrl} alt={selectedMember.name} fill sizes="64px" className="object-cover" />
                 ) : (
                   selectedMember.avatar
                 )}
@@ -393,7 +417,7 @@ export default function TeamPage() {
             <div className="mt-8 flex gap-3">
               <button 
                 onClick={() => {
-                  setMockMembers(mockMembers.filter((m: any) => m.id !== selectedMember.id));
+                  setMockMembers(mockMembers.filter((m: TeamMember) => m.id !== selectedMember.id));
                   setSelectedMember(null);
                 }}
                 className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 py-2.5 rounded-sm font-bold text-[10px] uppercase tracking-widest transition-colors"
@@ -403,7 +427,7 @@ export default function TeamPage() {
               {isEditingRole ? (
                 <button 
                   onClick={() => {
-                    const updatedMembers = mockMembers.map((m: any) => m.id === selectedMember.id ? {...m, role: editMemberRole} : m);
+                    const updatedMembers = mockMembers.map((m: TeamMember) => m.id === selectedMember.id ? {...m, role: editMemberRole} : m);
                     setMockMembers(updatedMembers);
                     setSelectedMember({...selectedMember, role: editMemberRole});
                     setIsEditingRole(false);

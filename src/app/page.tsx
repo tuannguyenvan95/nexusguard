@@ -38,7 +38,7 @@ export default function LandingPage() {
       <section className="relative z-10 py-10 border-y border-gray-800/50 bg-gray-900/20 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <p className="text-center text-sm text-gray-500 uppercase tracking-widest mb-6 font-semibold">
-            Powered by Circle's Arc Network
+            Powered by Circle&apos;s Arc Network
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
             {['USDC Native', 'Sub-second Finality', 'ERC-8004', 'ERC-8183'].map((badge) => (
