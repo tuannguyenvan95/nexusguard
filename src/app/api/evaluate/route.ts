@@ -6,6 +6,38 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { jobId, jobTitle, githubUrl, previewUrl, submitterWallet, agent, payoutType, maxWinners, totalAmount } = body
 
+    // Validate required fields
+    if (!jobId || !jobTitle || !submitterWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: jobId, jobTitle, submitterWallet' },
+        { status: 400 }
+      )
+    }
+
+    // Validate wallet address format
+    const walletRegex = /^0x[a-fA-F0-9]{40}$/
+    if (!walletRegex.test(submitterWallet)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid submitter wallet address format' },
+        { status: 400 }
+      )
+    }
+
+    // Validate URLs if provided
+    if (githubUrl && !githubUrl.startsWith('https://github.com/')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub URL format' },
+        { status: 400 }
+      )
+    }
+
+    if (previewUrl && !previewUrl.startsWith('http')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid preview URL format' },
+        { status: 400 }
+      )
+    }
+
     // Giả lập thời gian AI xử lý (đọc code, xem preview) khoảng 3 giây
     await new Promise(resolve => setTimeout(resolve, 3000))
 

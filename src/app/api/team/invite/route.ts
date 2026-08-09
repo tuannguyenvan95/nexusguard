@@ -13,6 +13,24 @@ export async function POST(req: Request) {
       )
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
+    }
+
+    // Validate role
+    const allowedRoles = ['developer', 'client', 'admin']
+    if (!allowedRoles.includes(role.toLowerCase())) {
+      return NextResponse.json(
+        { error: 'Invalid role. Allowed roles: developer, client, admin' },
+        { status: 400 }
+      )
+    }
+
     // 1. Tạo Test Account tự động từ Ethereal Mail
     const testAccount = await nodemailer.createTestAccount()
 

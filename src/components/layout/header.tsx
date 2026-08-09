@@ -1,4 +1,8 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface HeaderProps {
   title: string;
@@ -6,6 +10,27 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle }: HeaderProps) {
+  const [userInitials, setUserInitials] = useState('U');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const storedName = localStorage.getItem('nexusguard_name');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const displayName = storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+          setUserInitials(displayName.charAt(0).toUpperCase());
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    
+    fetchUser();
+  }, []);
+
   return (
     <header className="w-full px-8 py-6 flex items-center justify-between bg-transparent">
       <div>
@@ -16,7 +41,7 @@ export function Header({ title, subtitle }: HeaderProps) {
       <div className="flex items-center gap-6">
         <div className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-full px-4 py-1.5 text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          $12,450.00 USDC
+          ${balance} USDC
         </div>
 
         <button className="relative p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-300 hover:scale-[1.05]">
@@ -25,7 +50,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </button>
 
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg border-2 border-white/10 cursor-pointer hover:scale-105 transition-all duration-300">
-          <span className="text-white font-bold text-sm">JD</span>
+          <span className="text-white font-bold text-sm">{userInitials}</span>
         </div>
       </div>
     </header>

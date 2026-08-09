@@ -65,11 +65,13 @@ export default function ProviderProfilePage() {
       const wallet = (getStoredWalletAddress() || '').toLowerCase()
       const avatar = localStorage.getItem('nexusguard_avatar')
 
-      let name = 'UNKNOWN'
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+      const storedName = localStorage.getItem('nexusguard_name')
+      let name = storedName || 'UNKNOWN'
+      
       if (user) {
-        name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User'
+        name = storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User'
       }
 
       const { data, error } = await supabase.from('nexus_jobs').select('*').order('created_at', { ascending: false })

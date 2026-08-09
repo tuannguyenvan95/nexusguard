@@ -8,6 +8,19 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     if (!id) return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
 
     const supabase = await createClient()
+    
+    // Verify the job exists
+    const { data: job, error: fetchError } = await supabase
+      .from('nexus_jobs')
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+
+    // Delete the job
     const { error } = await supabase.from('nexus_jobs').delete().eq('id', id)
     if (error) throw error
 

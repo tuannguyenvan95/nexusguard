@@ -45,10 +45,12 @@ export default function JobsPage() {
       
       setCurrentAvatar(localStorage.getItem('nexusguard_avatar'))
       
+      const storedName = localStorage.getItem('nexusguard_name')
+      
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        setCurrentName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
+        setCurrentName(storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User')
       }
     }
     

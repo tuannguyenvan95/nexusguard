@@ -1,12 +1,41 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, Briefcase, Wallet, Bot, FileText, LogOut, Droplets } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('user@example.com');
+  const [userInitials, setUserInitials] = useState('U');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const storedName = localStorage.getItem('nexusguard_name');
+          const displayName = storedName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+          const displayEmail = user.email || 'user@example.com';
+          
+          setUserName(displayName);
+          setUserEmail(displayEmail);
+          setUserInitials(displayName.charAt(0).toUpperCase());
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+        // Keep default values on error
+      }
+    };
+    
+    fetchUser();
+  }, []);
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -57,11 +86,11 @@ export function Sidebar() {
       <div className="p-4 border-t border-white/5">
         <div className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-white/5 transition-all duration-300 group cursor-pointer mb-2">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-            <span className="text-white font-bold">JD</span>
+            <span className="text-white font-bold">{userInitials}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">John Doe</p>
-            <p className="text-gray-500 text-xs truncate">john@evotrade.io</p>
+            <p className="text-white text-sm font-medium truncate">{userName}</p>
+            <p className="text-gray-500 text-xs truncate">{userEmail}</p>
           </div>
         </div>
         <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 font-medium group">
