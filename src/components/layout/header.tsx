@@ -11,6 +11,7 @@ interface HeaderProps {
 
 export function Header({ title, subtitle }: HeaderProps) {
   const [userInitials, setUserInitials] = useState('U');
+  const balance = '0.00'; // TODO: Fetch real balance from wallet
 
   useEffect(() => {
     const fetchUser = async () => {
